@@ -614,6 +614,39 @@ tbody tr:hover {
   border-radius: 10px;
   margin-bottom: 30px;
 }
+.google-auth-button {
+  background: #fff;
+  border-color: #747775;
+  color: #1f1f1f;
+  gap: 10px;
+}
+.google-auth-button:hover {
+  background: #f2f2f2;
+}
+.google-brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  flex-shrink: 0;
+}
+.google-brand-icon img {
+  display: block;
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+:root[data-theme='dark'] .google-auth-button {
+  background: #131314;
+  border-color: #8e918f;
+  color: #e3e3e3;
+}
+:root[data-theme='dark'] .google-auth-button:hover {
+  background: #232326;
+}
 .auth-tabs a {
   padding: 10px 8px;
   text-align: center;

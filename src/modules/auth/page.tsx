@@ -208,7 +208,7 @@ export default function AuthPage() {
       </form>
       {googleOAuthEnabled && !forgot && !reset && (
         <Button
-          className="component-spacing"
+          className="component-spacing google-auth-button"
           variant="secondary"
           disabled={busy}
           onClick={async () => {
@@ -222,6 +222,9 @@ export default function AuthPage() {
             }
           }}
         >
+          <span className="google-brand-icon" aria-hidden="true">
+            <img src="/brand/google-g.png" alt="" width={18} height={18} />
+          </span>
           Continue with Google
         </Button>
       )}
