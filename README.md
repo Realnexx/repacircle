@@ -22,7 +22,7 @@ Both variables may be absent for preview. Partial or malformed configuration dis
 
 Apply `supabase/migrations/202610260001_foundation.sql` to your intended project, using the Supabase SQL editor or a linked CLI with `supabase db push`. For a local stack, `supabase/config.toml` provides the project configuration; `supabase start` requires a running Docker engine. This work does not apply remote migrations automatically.
 
-Configure Supabase Auth's site URL and allowed `/login` and `/reset-password` redirect URLs for your local and deployed origins. Email confirmation returns to `/login`. Recovery links return to `/reset-password`. Login, registration, recovery request and password update are connected to the Supabase SDK, but hosted email/auth flows require verification with your own configured project.
+Configure Supabase Auth's site URL and allowed `/login` and `/reset-password` redirect URLs for your local and deployed origins. Signup confirmation redirects to `https://repacircle.vercel.app/register`; add that exact URL to the hosted Supabase Auth redirect allowlist. Recovery links return to `/reset-password`. Login, registration, recovery request and password update are connected to the Supabase SDK, but hosted email/auth flows require verification with your own configured project.
 
 ## Architecture
 
@@ -88,5 +88,6 @@ See `PHASE-1.md` for the completion report and file inventory. Stop after Phase 
 #   r e p a c i r c l e 
  
  
-#   r e p a c i r c l e  
+#   r e p a c i r c l e 
+ 
  

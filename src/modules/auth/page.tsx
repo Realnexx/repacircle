@@ -65,7 +65,7 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email: values.email,
           password: values.password,
-          options: { emailRedirectTo: `${locationOrigin()}/login` },
+          options: { emailRedirectTo: 'https://repacircle.vercel.app/register' },
         })
         if (error) throw error
         setMessage('Check your email to confirm your account, then sign in.')
