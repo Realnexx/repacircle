@@ -85,5 +85,6 @@ For Vercel, use the Vite preset, `npm run build`, and output directory `dist`. S
 All requested workspace pages are layout shells. Domain records, payment verification, ledger, recipient selection, payouts, integrations, notifications and reports remain unimplemented. No financial transaction is possible through this foundation. Privacy and terms are explicitly marked as drafts for operator review. No service credentials are included.
 
 See `PHASE-1.md` for the completion report and file inventory. Stop after Phase 1; Phase 2 requires a new instruction.
-#   r e p a c i r c l e  
+#   r e p a c i r c l e 
+ 
  

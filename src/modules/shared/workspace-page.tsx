@@ -1,0 +1,78 @@
+import { Link } from 'react-router-dom'
+import { ArrowUpRight, ShieldCheck } from 'lucide-react'
+import { PageHeader } from '@/components/layout/page'
+import { EmptyState } from '@/components/feedback/states'
+import { StatCard, StatusBadge } from '@/components/data-display/components'
+import { useSession } from '@/modules/auth/session'
+import { ActivityChart } from '@/components/data-display/activity-chart'
+import type { WorkspaceRole } from '@/types/access'
+import { useEntrance } from '@/hooks/use-entrance'
+export function WorkspacePage({
+  role,
+  slug,
+  title,
+  description,
+}: {
+  role: WorkspaceRole
+  slug: string
+  title: string
+  description: string
+}) {
+  const { session } = useSession()
+  const ref = useEntrance()
+  return (
+    <div ref={ref}>
+      <PageHeader
+        title={title}
+        description={description}
+        eyebrow={role.replace('-', ' ').toUpperCase()}
+      />
+      {slug === 'dashboard' ? (
+        <>
+          <div className="dashboard-welcome panel">
+            <div>
+              <StatusBadge status="info">Foundation phase</StatusBadge>
+              <h2>Your community, thoughtfully connected.</h2>
+              <p>
+                Your workspace is ready to take shape. Group operations and financial workflows will
+                be connected in later phases.
+              </p>
+              <Link className="button" to={role === 'organizer' ? '/organizations' : '/help'}>
+                {role === 'organizer' ? 'Manage organizations' : 'View setup guide'}
+                <ArrowUpRight size={16} />
+              </Link>
+            </div>
+            <ShieldCheck size={70} aria-hidden="true" />
+          </div>
+          <div className="stat-grid">
+            <StatCard label="Groups" value="—" description="Group data is not connected." />
+            <StatCard label="Contributions" value="—" description="No financial data loaded." />
+            <StatCard label="Payouts" value="—" description="No financial data loaded." />
+          </div>
+          <section className="panel">
+            <h2>Community activity</h2>
+            <ActivityChart data={[]} />
+          </section>
+        </>
+      ) : slug === 'profile' ? (
+        <section className="panel">
+          <h2>Account details</h2>
+          <dl className="profile-details">
+            <dt>Email</dt>
+            <dd>{session?.user.email ?? 'Unavailable in layout preview'}</dd>
+            <dt>Profile editing</dt>
+            <dd>Will be enabled in the account management phase.</dd>
+          </dl>
+        </section>
+      ) : (
+        <section className="panel">
+          <StatusBadge>Not connected yet</StatusBadge>
+          <EmptyState
+            title={`${title} will appear here`}
+            description="This page is a functional navigation shell. Its data and actions will be implemented in the corresponding phase."
+          />
+        </section>
+      )}
+    </div>
+  )
+}
