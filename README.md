@@ -1,67 +1,80 @@
 # RepaCircle
 
-Phase 1 — project foundation and UI/UX system. React + TypeScript + Vite with Tailwind CSS, source-owned shadcn/ui primitives, Lucide, React Router, TanStack Query, React Hook Form, Zod, Supabase, Recharts, Sonner, GSAP, Vitest, React Testing Library and Playwright. Resolved dependencies are recorded in `package-lock.json`.
+React + TypeScript + Vite application. Phase 2 adds Supabase authentication, profiles, tenant organizations, MFA and scoped authorization to the Phase 1 UI system. Financial transactions are not implemented.
 
 ## Start locally
 
-Requires Node.js 22.12+ and npm.
+Requires Node.js 22.12+.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open the URL Vite prints. Without Supabase variables, the application runs in **layout preview** mode. It makes no organization or financial data requests in this mode. Preview each workspace at `/platform-admin/dashboard`, `/organizer/dashboard`, `/treasurer/dashboard`, and `/member/dashboard`. The preview workspace selector changes between these shells. `/design-system` is an interactive component reference with clearly labeled sample, nonfinancial content.
+Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Both are public browser configuration; never use a service-role key. `VITE_ENABLE_GOOGLE_OAUTH=true` shows Google on both login and registration (the default when unset); set it to false only to explicitly disable the provider. Restart Vite after configuration changes. Without Supabase configuration, clearly labeled layout previews remain available.
 
-To connect an existing Supabase project, copy `.env.example` to `.env` (`Copy-Item .env.example .env` in PowerShell) and set:
+## Updating an existing Supabase database
 
-- `VITE_SUPABASE_URL`: project HTTPS URL, or a local Supabase HTTP URL.
-- `VITE_SUPABASE_PUBLISHABLE_KEY`: public client key. Never set a service-role or secret key here.
+If you already applied `202610260002_auth_organizations_rbac.sql` and `202610260003_private_media.sql`, run **only** `supabase/migrations/202610260004_phase2_upgrade.sql` in your project's SQL Editor. The foundation migration must already exist. Do not rerun the earlier CREATE TABLE migrations.
 
-Both variables may be absent for preview. Partial or malformed configuration displays an error and does not create a client. Restart Vite after changing `.env`. Vite variables are public and included in the browser bundle.
+1. Open the Supabase project whose reference is `dmkranyrgucxmulapato`.
+2. Open **SQL Editor → New query**.
+3. Paste the entire contents of `202610260004_phase2_upgrade.sql` and run it.
+4. After success, deploy the updated application and sign out/sign in to refresh access.
 
-Apply `supabase/migrations/202610260001_foundation.sql` to your intended project, using the Supabase SQL editor or a linked CLI with `supabase db push`. For a local stack, `supabase/config.toml` provides the project configuration; `supabase start` requires a running Docker engine. This work does not apply remote migrations automatically.
+The upgrade replaces function definitions, restores explicit execution grants, adds administrator audit handling and installs restrictive private-storage policies. It preserves existing account, organization, membership, invitation and uploaded-object records. It runs in a transaction and is safe to repeat. It does not modify hosted Auth URL/provider configuration or deploy Edge Functions.
 
-Configure Supabase Auth's site URL and allowed `/login` and `/reset-password` redirect URLs for your local and deployed origins. Signup confirmation redirects to `https://repacircle.vercel.app/register`; add that exact URL to the hosted Supabase Auth redirect allowlist. Recovery links return to `/reset-password`. Login, registration, recovery request and password update are connected to the Supabase SDK, but hosted email/auth flows require verification with your own configured project.
+For a **new database**, apply all four migration files in filename order. If using the linked Supabase CLI, use `supabase db push` only after checking its migration history against manually applied files; a SQL Editor execution does not automatically mark a CLI migration applied. Do not reset a production database to synchronize history.
+
+## Hosted authentication configuration
+
+In Supabase Authentication URL Configuration:
+
+- Site URL: `https://repacircle.vercel.app`
+- Allowed redirect: `https://repacircle.vercel.app/register`
+- Allowed redirect: `https://repacircle.vercel.app/reset-password`
+- Allowed redirect: `https://repacircle.vercel.app/auth/callback`
+- Add equivalent localhost recovery/callback URLs only for development.
+
+Registration deliberately uses the requested production `/register` redirect. The Site URL must not remain localhost for production. Request a new confirmation message after correcting configuration. Enable email confirmations, secure email changes and TOTP MFA. The local `supabase/config.toml` does not change hosted project settings.
+
+For Google OAuth, configure the Google provider in Supabase, register the Supabase callback URL in the Google console, allow your app’s `/auth/callback` URL in Supabase Auth redirect URLs, then set `VITE_ENABLE_GOOGLE_OAUTH=true` and redeploy. The same button signs in existing accounts or creates new ones; Supabase automatically links identities with the same verified email. No Google secret belongs in Vercel's Vite variables.
+
+## Organization invitations and private media
+
+Owners can create expiring, email-bound invitations, copy a one-time-displayed invitation link, send it through the optional email function, and revoke invitations. Privileged invitees must enroll MFA. Tokens are hashed in the database and never included in invitation-list responses. Expired, revoked, wrong-recipient and escalation attempts are denied server-side.
+
+See `supabase/functions/README.md` to deploy invitation email delivery with Resend. Link sharing works without this provider; email delivery requires its configuration. Avatar and logo buckets are private, restrict file size/type and enforce user/tenant ownership. Images use short-lived signed URLs. Browser uploads check raster signatures; storage policies enforce namespace, MIME and size restrictions, not a malware-scanning service.
+
+## Permissions and administration
+
+The database computes capabilities from active, verified accounts, organization membership, group assignment and MFA. User-editable metadata never grants roles. Frontend guards are navigation aids; RPC authorization and RLS protect records independently.
+
+- Owners manage their organization's staff, settings, invitations, ownership and archival.
+- Organizers receive group-management capabilities for their tenant.
+- Treasurers receive financial capabilities only for explicitly assigned group scopes.
+- Members receive personal and explicitly assigned group capabilities.
+- Platform administrators are granted only by a trusted database operator, require MFA and have audited account/settings/analytics access.
+
+To bootstrap a platform administrator, first register, verify the account and enroll MFA at `/security`. A trusted operator can then run this SQL with that verified user's actual UUID:
+
+```sql
+insert into private.platform_administrators(user_id)
+values ('REPLACE_WITH_VERIFIED_USER_UUID'::uuid)
+on conflict do nothing;
+```
+
+There is no browser-facing administrator grant API. Creation of an organization grants ownership of that new tenant only. Owners cannot demote/remove themselves or leave without transferring ownership. Unresolved closure blockers prevent archive, departure and member removal. Future financial modules must register blockers transactionally; no organization hard-delete endpoint exists.
 
 ## Architecture
 
-- `src/app/router/definitions.ts`: shared route metadata; `src/app/router/index.tsx`: centralized lazy route construction, Suspense and route error handling.
-- `src/app/layouts`: Public, Auth, Platform Admin, Organizer, Treasurer and Member layouts.
-- `src/app/providers`: query client, session, theme, toast and organization-scoped access providers.
-- `src/modules`: auth, organization services, four role page modules, public pages, and reserved domain directories for groups, rewards, contributions, payments, payouts, notifications and reports.
-- `src/components`: UI primitives, layout/navigation, forms, feedback and data-display components.
-- `src/lib`: Supabase client, API error helpers, exact currency parsing, environment validation and class utilities.
-- `src/hooks`, `src/types`, `src/styles`: shared hooks, access types and the token system.
-- `supabase`: migrations, security tests, configuration and a reserved functions directory.
+Central lazy routes and layouts are in `src/app`; session, query and access providers coordinate restoration and tenant switching. Modules implement auth, profiles, organizations and platform administration. Shared components and emerald light/dark tokens remain in `src/components` and `src/styles`. `@/` resolves to `src/`.
 
-`@/` resolves to `src/` in Vite, TypeScript and Vitest. `components.json` configures the shadcn/ui new-york source convention, CSS variable theme and aliases. Button uses Radix Slot and class-variance-authority; Input and Label are source-owned primitives. The native dialog component provides focus containment, Escape handling and focus restoration.
+Public account flows include registration, login, verification, recovery, reset and OAuth callback. `/profile`, `/security`, `/organizations`, `/invite` and `/unauthorized` support account/tenant management. Workspace navigation is filtered by scoped permission. Cache data clears when identity changes and selected organizations are validated against current membership.
 
-## Routes and boundaries
+Group scopes are authorization anchors only. REPA group rules, financial processing, support/dispute case handling and operational reporting remain later-phase work. Platform analytics currently report audited account/tenant/invitation counts only.
 
-Public: `/`, `/privacy`, `/terms`, `/help`, `/design-system`.
-
-Accounts: `/login`, `/register`, `/forgot-password`, `/reset-password`.
-
-Each workspace's paths, titles and descriptions are defined in `src/app/router/definitions.ts`. Role roots redirect to their dashboards. `/organizations` preserves the existing organization creation/listing flow. Unknown URLs render a useful not-found page; `/roadmap` redirects to setup guidance.
-
-With Supabase configured, workspace content requires authentication. Organization roles are read from the database, scoped to the selected organization. Owner maps to organizer; treasurer maps to treasurer; membership grants the member shell. Platform-admin access stays closed until Phase 2 introduces a server-managed permission source. User-editable metadata is not used for role grants. These frontend boundaries improve navigation; RLS and server authorization remain authoritative. Group-level permissions and complete RBAC are deferred to Phase 2.
-
-## UI system
-
-`src/styles/tokens.css` centralizes semantic colors, status colors, light/dark themes, typography, spacing, radii, shadows and focus indicators. CSS variables also map into Tailwind utilities. Breakpoints are 576, 800 and 1100 pixels; matching TypeScript constants live in `src/styles/breakpoints.ts`.
-
-Theme preference persists in local storage when available. Every authenticated shell includes role navigation, page titles, breadcrumbs, notification disclosure, user menu and a modal mobile navigation panel. Animations respect reduced-motion preferences. Shared components can be exercised at `/design-system`.
-
-Currency input uses exact integer centavo strings and BigInt conversion; it never computes monetary values with floating point. Date/time input represents local wall time; future schedule commands must explicitly resolve a timezone. File selection checks type and size locally and never uploads in this phase; server-side file inspection and Storage policies remain future work. The Recharts activity component supports data and an accessible table fallback, but application dashboards receive no invented activity data.
-
-## Database and security
-
-The retained `create_organization(organization_name, request_id)` RPC atomically creates the organization, owner membership and audit event. Same-input retries return the existing organization; conflicting retries are rejected. RLS restricts organization and membership reads; audit reads require ownership. Client table writes are denied. Security-definer functions use an empty search path. Audit mutation is blocked by a trigger; database administrators can still alter database objects.
-
-This Phase 1 expansion adds no tables, migrations, financial RPCs or Edge Functions. Existing organization behavior and database security tests are preserved.
-
-## Quality checks
+## Verification
 
 ```sh
 npm run format:check
@@ -72,22 +85,25 @@ npm run test:db
 npm run build
 npx playwright install chromium
 npm run test:e2e
+deno check --frozen --config supabase/functions/deno.json supabase/functions/send-organization-invitation/index.ts
 ```
 
-`npm run format` formats source and documentation. GitHub Actions runs formatting, lint, type checking, unit/component tests, embedded PostgreSQL checks, build and browser tests on Node 22. Browser tests expect both Supabase environment variables to be absent. They check all 34 registered pages, navigation, theme persistence, accessible confirmation focus, form validation, filtering, pagination, browser errors and viewport overflow. Coverage includes desktop, mobile, narrow 320px and tablet 768px views. Playwright saves light/dark workspace screenshots under ignored `test-results/`.
+Database tests run real embedded PostgreSQL with Auth/Storage schema shims, exercise RLS and RPCs, and test the forward upgrade with existing records and simulated older definitions. Browser tests use both empty configuration previews and an intercepted Supabase API fixture on separate local servers, with desktop/mobile projects. These checks do not establish hosted email delivery, Google OAuth or production project configuration.
 
-`npm run test:db` uses embedded PostgreSQL with a minimal Supabase authentication shim. To verify on a disposable Supabase database, run `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/foundation.sql`. Fixtures roll back. Embedded verification does not replace hosted Supabase integration testing.
+## Vercel
 
-## Deployment and phase boundary
+Use the Vite preset, `npm run build`, output `dist`, and these variables:
 
-For Vercel, use the Vite preset, `npm run build`, and output directory `dist`. Set the public environment variables and configure Auth redirect allowlists. `vercel.json` supplies SPA routing and basic response security headers. No deployment was performed.
+- `VITE_SUPABASE_URL=https://dmkranyrgucxmulapato.supabase.co`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`: your project's publishable key
+- `VITE_ENABLE_GOOGLE_OAUTH=true` after configuring the Google provider
 
-All requested workspace pages are layout shells. Domain records, payment verification, ledger, recipient selection, payouts, integrations, notifications and reports remain unimplemented. No financial transaction is possible through this foundation. Privacy and terms are explicitly marked as drafts for operator review. No service credentials are included.
+Redeploy after changing build-time variables. `vercel.json` supplies SPA routing. Supabase migrations and function deployment are separate from a Vercel deployment. See `PHASE-2.md` for completion status and remaining hosted checks.
 
-See `PHASE-1.md` for the completion report and file inventory. Stop after Phase 1; Phase 2 requires a new instruction.
-#   r e p a c i r c l e 
- 
- 
-#   r e p a c i r c l e 
- 
- 
+### Required personal information
+
+Email confirmation and Google sign-in lead incomplete accounts to /profile/setup. The setup collects first/last name, optional middle/extension name, Philippine mobile number, gender (including prefer not to say), and cascading PSGC region/province/city/barangay plus street/purok and optional postal code. NCR skips province. PSGC choices use https://psgc.gitlab.io/api/ with retry controls; changing a parent clears dependent fields.
+
+Apply the project migration `supabase/migrations/20261026073855_required_personal_profile.sql` in migration order when deploying. This change has not been applied to an online database. Existing profiles are preserved and require setup on their next login. The completion timestamp is set by the ownership-checked save_personal_profile RPC, with backend validation and workspace checks preventing URL/API bypass. No role/status is accepted from the form. Run `npm run test:db` for isolated PostgreSQL tests; it uses PGlite and never connects to online Supabase.
+
+Google OAuth must be enabled in the project's Supabase Auth provider settings with Google client credentials; SQL migrations cannot configure an OAuth provider. No online settings or data are changed by this implementation. The application requests the provider flow rather than prechecking account existence. See [Google setup](https://supabase.com/docs/guides/auth/social-sign-in/auth-google) and [identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking).

@@ -3,7 +3,8 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useSession } from '@/modules/auth/session'
 import { useAccess } from '@/app/providers/access'
 import { environment } from '@/lib/validation/env'
-import { hasWorkspaceAccess, type WorkspaceRole } from '@/types/access'
+import { routePermission, type WorkspaceRole } from '@/types/access'
+import Unauthorized from '@/modules/auth/unauthorized'
 import { ErrorState, LoadingSkeleton } from '../feedback/states'
 export function PermissionGuard({ role, children }: { role?: WorkspaceRole; children: ReactNode }) {
   const { session, loading, error } = useSession()
@@ -15,12 +16,12 @@ export function PermissionGuard({ role, children }: { role?: WorkspaceRole; chil
   if (loading || access.loading) return <LoadingSkeleton label="Checking workspace access…" />
   if (error || access.error) return <ErrorState message={error ?? access.error!.message} />
   if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />
-  if (role && !hasWorkspaceAccess(access.roles, role))
-    return (
-      <ErrorState
-        title="Workspace access required"
-        message="Your current organization does not grant this role. Choose an organization you belong to or contact its organizer."
-      />
-    )
+  if (!session.user.email_confirmed_at || !access.verified)
+    return <Navigate to="/verify-email" replace />
+  if (access.accountStatus !== 'active')
+    return <Unauthorized reason="This account is suspended. Contact the platform operator." />
+  if (role && access.requiresMfa && access.aal !== 'aal2')
+    return <Navigate to="/security" replace state={{ from: location.pathname }} />
+  if (role && !access.can(routePermission(role, location.pathname))) return <Unauthorized />
   return <>{children}</>
 }

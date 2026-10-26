@@ -15,8 +15,11 @@ import { workspaces } from '@/app/router/definitions'
 import { useAccess } from '@/app/providers/access'
 import { environment } from '@/lib/validation/env'
 import type { WorkspaceRole } from '@/types/access'
+import { routePermission } from '@/types/access'
 import { Breadcrumbs } from './page'
 import { NotificationDropdown, ThemeToggle, UserMenu } from './menus'
+import { Brand } from './brand'
+export { Brand } from './brand'
 const icons = {
   dashboard: LayoutDashboard,
   groups: Users,
@@ -24,31 +27,28 @@ const icons = {
   settings: Settings,
   reports: FileBarChart,
 }
-export function Brand() {
-  return (
-    <Link to="/" className="brand" aria-label="RepaCircle home">
-      <span className="brand-icon" aria-hidden="true">
-        ◎
-      </span>
-      RepaCircle<span className="brand-dot">.</span>
-    </Link>
-  )
-}
 function NavigationLinks({ role, onNavigate }: { role: WorkspaceRole; onNavigate?: () => void }) {
   const workspace = workspaces.find((w) => w.role === role)!
+  const access = useAccess()
   return (
     <>
       <span className="nav-label">WORKSPACE</span>
       <nav className="workspace-nav" aria-label={`${workspace.label} navigation`}>
-        {workspace.pages.map((page) => {
-          const Icon = icons[page.slug as keyof typeof icons] ?? Wallet
-          return (
-            <NavLink key={page.slug} onClick={onNavigate} to={`/${role}/${page.slug}`}>
-              <Icon size={18} aria-hidden="true" />
-              {page.title}
-            </NavLink>
+        {workspace.pages
+          .filter(
+            (page) =>
+              environment.mode === 'setup' ||
+              access.can(routePermission(role, `/${role}/${page.slug}`)),
           )
-        })}
+          .map((page) => {
+            const Icon = icons[page.slug as keyof typeof icons] ?? Wallet
+            return (
+              <NavLink key={page.slug} onClick={onNavigate} to={`/${role}/${page.slug}`}>
+                <Icon size={18} aria-hidden="true" />
+                {page.title}
+              </NavLink>
+            )
+          })}
         {role === 'organizer' && (
           <NavLink to="/organizations" onClick={onNavigate}>
             <Building2 size={18} />
@@ -56,6 +56,23 @@ function NavigationLinks({ role, onNavigate }: { role: WorkspaceRole; onNavigate
           </NavLink>
         )}
       </nav>
+      {environment.mode !== 'setup' && (
+        <nav aria-label="Available workspaces" className="workspace-links">
+          {workspaces
+            .filter((w) => access.roles.includes(w.role) && w.role !== role)
+            .map((w) => (
+              <Link key={w.role} to={`/${w.role}/dashboard`} onClick={onNavigate}>
+                {w.label}
+              </Link>
+            ))}
+          <Link to="/profile" onClick={onNavigate}>
+            Your profile
+          </Link>
+          <Link to="/security" onClick={onNavigate}>
+            Account security
+          </Link>
+        </nav>
+      )}
     </>
   )
 }

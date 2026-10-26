@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { BrandEmblem } from '@/components/layout/brand'
 import {
   ArrowUpRight,
   Building2,
@@ -30,9 +31,7 @@ export default function Landing() {
         <div className="circle-art" aria-hidden="true">
           <div className="orbit orbit-one" />
           <div className="orbit orbit-two" />
-          <div className="circle-core">
-            <Users size={44} />
-          </div>
+          <BrandEmblem className="landing-emblem" />
           <span className="art-chip chip-top">
             <ShieldCheck size={17} /> Built on trust
           </span>

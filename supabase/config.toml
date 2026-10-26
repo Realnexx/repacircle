@@ -11,8 +11,19 @@ major_version = 15
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173/login", "http://localhost:5173/reset-password", "http://127.0.0.1:5173/login", "http://127.0.0.1:5173/reset-password", "https://repacircle.vercel.app/register"]
+additional_redirect_urls = ["http://localhost:5173/auth/callback", "http://127.0.0.1:5173/auth/callback", "https://repacircle.vercel.app/auth/callback", "http://localhost:5173/login", "http://localhost:5173/reset-password", "http://127.0.0.1:5173/login", "http://127.0.0.1:5173/reset-password", "https://repacircle.vercel.app/register"]
 enable_signup = true
 [auth.email]
 enable_signup = true
 enable_confirmations = true
+double_confirm_changes = true
+secure_password_change = true
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+# The handler explicitly verifies the user JWT with Auth and enforces MFA/owner scope in SQL.
+[functions.send-organization-invitation]
+verify_jwt = false
+import_map = "./functions/deno.json"

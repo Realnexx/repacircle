@@ -1,3 +1,5 @@
 @import 'tailwindcss';
 @import './styles/tokens.css';
 @import './styles/foundation.css';
+@import './styles/phase2.css';
+@import './styles/community-theme.css';

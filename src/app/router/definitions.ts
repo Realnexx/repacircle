@@ -137,6 +137,8 @@ export const authPages = [
   { path: '/register', title: 'Register' },
   { path: '/forgot-password', title: 'Forgot Password' },
   { path: '/reset-password', title: 'Reset Password' },
+  { path: '/verify-email', title: 'Verify email' },
+  { path: '/auth/callback', title: 'Complete sign-in' },
 ]
 export const workspacePaths = workspaces.flatMap((workspace) =>
   workspace.pages.map((page) => `/${workspace.role}/${page.slug}`),

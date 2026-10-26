@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, ShieldCheck } from 'lucide-react'
+import { ArrowUpRight, ShieldCheck, Users, Wallet, HandCoins } from 'lucide-react'
+import { WorkspaceShortcuts } from '@/components/layout/workspace-shortcuts'
 import { PageHeader } from '@/components/layout/page'
 import { EmptyState } from '@/components/feedback/states'
 import { StatCard, StatusBadge } from '@/components/data-display/components'
@@ -29,30 +30,75 @@ export function WorkspacePage({
       />
       {slug === 'dashboard' ? (
         <>
-          <div className="dashboard-welcome panel">
-            <div>
-              <StatusBadge status="info">Foundation phase</StatusBadge>
-              <h2>Your community, thoughtfully connected.</h2>
-              <p>
-                Your workspace is ready to take shape. Group operations and financial workflows will
-                be connected in later phases.
-              </p>
-              <Link className="button" to={role === 'organizer' ? '/organizations' : '/help'}>
-                {role === 'organizer' ? 'Manage organizations' : 'View setup guide'}
-                <ArrowUpRight size={16} />
-              </Link>
+          <div className="dashboard-overview">
+            <div className="dashboard-overview-main">
+              <div className="dashboard-welcome panel">
+                <div>
+                  <StatusBadge status="info">Foundation phase</StatusBadge>
+                  <h2>Your community, thoughtfully connected.</h2>
+                  <p>
+                    Your workspace is ready to take shape. Group operations and financial workflows
+                    will be connected in later phases.
+                  </p>
+                  <Link className="button" to={role === 'organizer' ? '/organizations' : '/help'}>
+                    {role === 'organizer' ? 'Manage organizations' : 'View setup guide'}
+                    <ArrowUpRight size={16} />
+                  </Link>
+                </div>
+                <div className="dashboard-symbol" aria-hidden="true">
+                  <Users size={44} />
+                </div>
+              </div>
+              <div className="stat-grid">
+                <StatCard
+                  label="Groups"
+                  value="—"
+                  description="Group data is not connected."
+                  icon={<Users size={18} />}
+                />
+                <StatCard
+                  label="Contributions"
+                  value="—"
+                  description="No financial data loaded."
+                  icon={<Wallet size={18} />}
+                />
+                <StatCard
+                  label="Payouts"
+                  value="—"
+                  description="No financial data loaded."
+                  icon={<HandCoins size={18} />}
+                />
+              </div>
             </div>
-            <ShieldCheck size={70} aria-hidden="true" />
+            <WorkspaceShortcuts platform={role === 'platform-admin'} />
           </div>
-          <div className="stat-grid">
-            <StatCard label="Groups" value="—" description="Group data is not connected." />
-            <StatCard label="Contributions" value="—" description="No financial data loaded." />
-            <StatCard label="Payouts" value="—" description="No financial data loaded." />
+          <div className="dashboard-lower">
+            <section className="panel dashboard-activity">
+              <div className="section-heading">
+                <h2>Community activity</h2>
+                <StatusBadge>Awaiting activity</StatusBadge>
+              </div>
+              <ActivityChart data={[]} />
+            </section>
+            <aside className="panel circle-note">
+              <span className="eyebrow">THE POWER OF YOUR CIRCLE</span>
+              <div className="circle-note-symbol" aria-hidden="true">
+                <ShieldCheck size={30} />
+              </div>
+              <h2>
+                Built for community.
+                <br />
+                Designed for trust.
+              </h2>
+              <p>
+                A shared purpose starts with a clear foundation. Bring your community together, one
+                step at a time.
+              </p>
+              <Link to="/help">
+                Explore the setup guide <ArrowUpRight size={16} />
+              </Link>
+            </aside>
           </div>
-          <section className="panel">
-            <h2>Community activity</h2>
-            <ActivityChart data={[]} />
-          </section>
         </>
       ) : slug === 'profile' ? (
         <section className="panel">

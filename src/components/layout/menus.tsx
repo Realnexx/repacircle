@@ -1,11 +1,9 @@
 import { useRef } from 'react'
 import { Bell, ChevronDown, LogOut, Moon, Sun, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useTheme } from '@/app/providers/theme'
 import { useSession } from '@/modules/auth/session'
-import { supabase } from '@/lib/supabase'
 export function ThemeToggle() {
   const { theme, toggle } = useTheme()
   return (
@@ -41,12 +39,11 @@ export function NotificationDropdown() {
   )
 }
 export function UserMenu() {
-  const { session } = useSession()
-  const client = useQueryClient()
+  const { session, logout } = useSession()
   const ref = useRef<HTMLDetailsElement>(null)
   return (
     <details ref={ref} className="dropdown user-dropdown" onKeyDown={closeOnEscape}>
-      <summary>
+      <summary aria-label="User menu">
         <span className="avatar">{session?.user.email?.charAt(0).toUpperCase() ?? 'R'}</span>
         <span className="sr-only">User menu</span>
         <ChevronDown size={13} />
@@ -54,7 +51,7 @@ export function UserMenu() {
       <div className="dropdown-content">
         <strong>{session?.user.email ?? 'Preview account'}</strong>
         <Link
-          to="/member/profile"
+          to="/profile"
           onClick={() => {
             if (ref.current) ref.current.open = false
           }}
@@ -66,9 +63,8 @@ export function UserMenu() {
           <button
             onClick={async () => {
               try {
-                const { error } = await supabase!.auth.signOut()
-                if (error) throw error
-                client.clear()
+                const warning = await logout()
+                if (warning) toast.warning(warning)
                 if (ref.current) ref.current.open = false
               } catch (error) {
                 toast.error(error instanceof Error ? error.message : 'Unable to sign out.')

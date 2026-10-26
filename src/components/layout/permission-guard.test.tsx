@@ -4,7 +4,11 @@ import { afterEach, it, expect, vi } from 'vitest'
 import type { Session } from '@supabase/supabase-js'
 const state = vi.hoisted(() => ({
   session: null as Session | null,
-  roles: [] as string[],
+  allowed: false,
+  verified: true,
+  status: 'active',
+  mfa: false,
+  aal: 'aal2',
   mode: 'connected',
   error: null as string | null,
 }))
@@ -12,7 +16,15 @@ vi.mock('@/modules/auth/session', () => ({
   useSession: () => ({ session: state.session, loading: false, error: null }),
 }))
 vi.mock('@/app/providers/access', () => ({
-  useAccess: () => ({ roles: state.roles, loading: false, error: null }),
+  useAccess: () => ({
+    loading: false,
+    error: null,
+    verified: state.verified,
+    accountStatus: state.status,
+    requiresMfa: state.mfa,
+    aal: state.aal,
+    can: () => state.allowed,
+  }),
 }))
 vi.mock('@/lib/validation/env', () => ({
   environment: {
@@ -27,11 +39,20 @@ vi.mock('@/lib/validation/env', () => ({
 import { PermissionGuard } from './permission-guard'
 afterEach(() => {
   cleanup()
-  state.session = null
-  state.roles = []
-  state.mode = 'connected'
-  state.error = null
+  Object.assign(state, {
+    session: null,
+    allowed: false,
+    verified: true,
+    status: 'active',
+    mfa: false,
+    aal: 'aal2',
+    mode: 'connected',
+    error: null,
+  })
 })
+function signIn() {
+  state.session = { user: { id: 'account', email_confirmed_at: '2026-01-01' } } as Session
+}
 function mount() {
   render(
     <MemoryRouter initialEntries={['/protected']}>
@@ -45,28 +66,52 @@ function mount() {
           }
         />
         <Route path="/login" element={<h1>Login</h1>} />
+        <Route path="/verify-email" element={<h1>Verify email</h1>} />
+        <Route path="/security" element={<h1>MFA</h1>} />
       </Routes>
     </MemoryRouter>,
   )
 }
-it('redirects unauthenticated configured users to login', () => {
+it('redirects unauthenticated users to login', () => {
   mount()
   expect(screen.getByRole('heading', { name: 'Login' })).toBeInTheDocument()
 })
-it('denies a signed-in member from organizer content', () => {
-  state.session = { user: { id: 'member' } } as Session
-  state.roles = ['member']
+it('denies a member without the operation permission', () => {
+  signIn()
   mount()
-  expect(screen.getByRole('heading', { name: 'Workspace access required' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Access not permitted' })).toBeInTheDocument()
   expect(screen.queryByText('Private content')).not.toBeInTheDocument()
 })
-it('allows the matching server-derived workspace role', () => {
-  state.session = { user: { id: 'owner' } } as Session
-  state.roles = ['organizer']
+it('allows the server-derived operation permission', () => {
+  signIn()
+  state.allowed = true
   mount()
   expect(screen.getByText('Private content')).toBeInTheDocument()
 })
-it('allows empty setup previews and blocks invalid configuration', () => {
+it('enforces email verification', () => {
+  signIn()
+  state.verified = false
+  mount()
+  expect(screen.getByText('Verify email')).toBeInTheDocument()
+})
+it('enforces MFA for privileged users', () => {
+  signIn()
+  state.mfa = true
+  state.aal = 'aal1'
+  mount()
+  expect(screen.getByText('MFA')).toBeInTheDocument()
+})
+it('denies suspended accounts even with a role permission', () => {
+  signIn()
+  state.allowed = true
+  state.status = 'suspended'
+  mount()
+  expect(
+    screen.getByText('This account is suspended. Contact the platform operator.'),
+  ).toBeInTheDocument()
+  expect(screen.queryByText('Private content')).not.toBeInTheDocument()
+})
+it('allows labeled setup shells but fails closed on invalid configuration', () => {
   state.mode = 'setup'
   mount()
   expect(screen.getByText('Private content')).toBeInTheDocument()
@@ -74,5 +119,4 @@ it('allows empty setup previews and blocks invalid configuration', () => {
   state.error = 'Invalid configuration'
   mount()
   expect(screen.getByRole('alert')).toHaveTextContent('Invalid configuration')
-  expect(screen.queryByText('Private content')).not.toBeInTheDocument()
 })

@@ -24,3 +24,4 @@ export function validateEnvironment(input: Record<string, unknown>) {
   return { config: result.data, error: null, mode: 'connected' as const }
 }
 export const environment = validateEnvironment(import.meta.env)
+export const googleOAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_OAUTH !== 'false'

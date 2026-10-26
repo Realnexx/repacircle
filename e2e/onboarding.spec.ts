@@ -23,6 +23,10 @@ test('all public, account and workspace routes render without browser errors or 
     ...authPages.map((p) => p.path),
     ...workspacePaths,
     '/organizations',
+    '/profile',
+    '/security',
+    '/invite',
+    '/unauthorized',
   ]) {
     await page.goto(path)
     await expect(page.locator('h1')).toBeVisible()

@@ -12,14 +12,18 @@ export function WorkspaceLayout({ role }: { role: WorkspaceRole }) {
   const [mobile, setMobile] = useState(false)
   const location = useLocation()
   const title =
-    location.pathname === '/organizations'
-      ? 'Organizations'
-      : (workspaces
-          .find((w) => w.role === role)
-          ?.pages.find((p) => location.pathname.endsWith(`/${p.slug}`))?.title ?? 'Workspace')
+    location.pathname === '/profile'
+      ? 'Your profile'
+      : location.pathname === '/security'
+        ? 'Account security'
+        : location.pathname === '/organizations'
+          ? 'Organizations'
+          : (workspaces
+              .find((w) => w.role === role)
+              ?.pages.find((p) => location.pathname.endsWith(`/${p.slug}`))?.title ?? 'Workspace')
   usePageTitle(title)
   return (
-    <div className="app">
+    <div className="app workspace-app">
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
@@ -38,7 +42,13 @@ export function WorkspaceLayout({ role }: { role: WorkspaceRole }) {
                 </span>
               </div>
             )}
-            <PermissionGuard role={location.pathname === '/organizations' ? undefined : role}>
+            <PermissionGuard
+              role={
+                ['/organizations', '/profile', '/security'].includes(location.pathname)
+                  ? undefined
+                  : role
+              }
+            >
               <Outlet />
             </PermissionGuard>
             <footer>

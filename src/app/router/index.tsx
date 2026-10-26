@@ -1,3 +1,4 @@
+import { ProfileCompletionGuard } from '@/modules/profiles/completion-guard'
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Link, Navigate, useRoutes, type RouteObject } from 'react-router-dom'
 import { workspaces, publicPages, authPages } from './definitions'
@@ -36,6 +37,12 @@ const Setup = lazy(() => import('@/components/layout/setup'))
 const Auth = lazy(() => import('@/modules/auth/page'))
 const DesignSystem = lazy(() => import('@/modules/public/design-system'))
 const Organizations = lazy(() => import('@/modules/organizations/page'))
+const Profile = lazy(() => import('@/modules/profiles/page'))
+const Security = lazy(() => import('@/modules/auth/security'))
+const Verification = lazy(() => import('@/modules/auth/verification'))
+const Callback = lazy(() => import('@/modules/auth/callback'))
+const Invite = lazy(() => import('@/modules/organizations/invitations'))
+const Unauthorized = lazy(() => import('@/modules/auth/unauthorized'))
 const OrganizerLayout = layouts.organizer
 const publicElements: Record<string, ReactNode> = {
   '/': <Landing />,
@@ -54,6 +61,8 @@ const routes: RouteObject[] = [
     element: <PublicLayout />,
     children: [
       ...publicPages.map((page) => ({ path: page.path, element: publicElements[page.path] })),
+      { path: '/invite', element: <Invite /> },
+      { path: '/unauthorized', element: <Unauthorized /> },
       {
         path: '*',
         element: (
@@ -70,10 +79,20 @@ const routes: RouteObject[] = [
   },
   {
     element: <AuthLayout />,
-    children: authPages.map(({ path }) => ({
-      path,
-      element: <Auth key={path} />,
-    })),
+    children: [
+      { path: '/profile/setup', element: <Profile /> },
+      ...authPages.map(({ path }) => ({
+        path,
+        element:
+          path === '/verify-email' ? (
+            <Verification />
+          ) : path === '/auth/callback' ? (
+            <Callback />
+          ) : (
+            <Auth key={path} />
+          ),
+      })),
+    ],
   },
   ...workspaces.map((workspace) => {
     const Layout = layouts[workspace.role]
@@ -85,7 +104,12 @@ const routes: RouteObject[] = [
         { index: true, element: <Navigate to="dashboard" replace /> },
         ...workspace.pages.map((page) => ({
           path: page.slug,
-          element: <Page role={workspace.role} {...page} />,
+          element:
+            workspace.role === 'member' && page.slug === 'profile' ? (
+              <Profile />
+            ) : (
+              <Page role={workspace.role} {...page} />
+            ),
         })),
       ],
     }
@@ -104,13 +128,22 @@ const routes: RouteObject[] = [
       },
     ],
   },
+  {
+    element: <OrganizerLayout />,
+    children: [
+      { path: '/profile', element: <Profile /> },
+      { path: '/security', element: <Security /> },
+    ],
+  },
   { path: '/roadmap', element: <Navigate to="/help" replace /> },
 ]
 export function AppRouter() {
   const element = useRoutes(routes)
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LoadingSkeleton label="Loading page…" />}>{element}</Suspense>
+      <Suspense fallback={<LoadingSkeleton label="Loading page…" />}>
+        <ProfileCompletionGuard>{element}</ProfileCompletionGuard>
+      </Suspense>
     </ErrorBoundary>
   )
 }

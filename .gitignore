@@ -3,7 +3,11 @@ dist/
 .env
 .env.*.local
 .npm-cache/
+.deno-cache/
 coverage/
 playwright-report/
 test-results/
 debug.log
+
+.env.local
+supabase/functions/.env
