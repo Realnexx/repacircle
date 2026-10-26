@@ -750,7 +750,7 @@
     gap: 25px;
   }
   .landing-page section[id] {
-    scroll-margin-top: 160px;
+    scroll-margin-top: 92px;
   }
 }
 @media (max-width: 36rem) {
@@ -758,7 +758,7 @@
     padding-bottom: 30px;
   }
   .landing-hero h1 {
-    font-size: 2.4rem;
+    font-size: clamp(1.85rem, 9.6vw, 2.4rem);
     letter-spacing: -1.5px;
   }
   .landing-hero-copy > p {

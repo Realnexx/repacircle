@@ -5,6 +5,7 @@ import { PageContainer } from '@/components/layout/page'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { publicPages } from '../router/definitions'
 import { ChevronDown } from 'lucide-react'
+import { PublicMobileMenu } from '@/components/layout/public-mobile-menu'
 const sections = [
   ['#how-it-works', 'How it works'],
   ['#for-your-community', 'Your community'],
@@ -70,6 +71,7 @@ export function PublicLayout() {
             Get started
           </Link>
         </nav>
+        <PublicMobileMenu sections={landing ? sections : []} />
       </header>
       <main id="main-content" tabIndex={-1}>
         <PageContainer>

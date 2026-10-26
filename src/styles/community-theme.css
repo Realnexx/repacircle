@@ -346,6 +346,114 @@ tbody tr:hover {
   z-index: 35;
   box-shadow: 0 5px 24px #001a0b08;
 }
+.public-mobile-actions {
+  display: none;
+}
+.public-mobile-menu {
+  position: fixed;
+  top: 82px;
+  bottom: auto;
+  width: calc(100% - 24px);
+  max-width: 420px;
+  max-height: calc(100dvh - 100px);
+  margin: 0 auto;
+  padding: 0;
+  color: var(--foreground);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.public-mobile-menu::backdrop {
+  background: #001b16a3;
+  backdrop-filter: blur(4px);
+}
+.public-mobile-menu[open] {
+  animation: public-menu-in 180ms ease-out;
+}
+@keyframes public-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.public-mobile-menu-panel {
+  padding: 20px;
+}
+.public-mobile-menu-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.public-mobile-menu-heading .eyebrow {
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+}
+.public-mobile-menu-heading h2 {
+  font-size: 1.125rem;
+  margin-top: 8px;
+}
+.public-mobile-menu nav.public-mobile-section-links {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: normal;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  margin-top: 8px;
+}
+.public-mobile-section-links > a {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 16px 4px;
+  min-height: 52px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+.public-mobile-section-links > a:hover {
+  color: var(--primary);
+}
+.public-mobile-section-links > a > svg {
+  margin-left: auto;
+  color: var(--primary);
+}
+.mobile-section-number {
+  color: var(--muted-foreground);
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+}
+.public-mobile-help {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 4px;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+.public-mobile-help svg:last-child {
+  margin-left: auto;
+}
+.public-mobile-account-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+.public-mobile-menu-note {
+  text-align: center;
+  font-size: 0.625rem;
+  margin: 20px 0 0;
+}
 .public-app main {
   max-width: 1280px;
 }
@@ -593,6 +701,33 @@ tbody tr:hover {
     border-radius: 17px 17px 0 0;
     padding: 16px 20px;
   }
+  .public-header {
+    flex-wrap: nowrap;
+    height: 68px;
+    padding: 10px 14px;
+    gap: 12px;
+  }
+  .public-header > nav[aria-label='Public navigation'],
+  .public-header > nav.landing-section-nav {
+    display: none;
+  }
+  .public-mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .public-mobile-actions > .icon-button,
+  .public-mobile-menu .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 10px;
+  }
+  .public-mobile-actions > .public-menu-trigger {
+    color: var(--primary);
+    background: var(--secondary);
+  }
   .workspace-app main {
     padding: 24px 20px 0;
   }
@@ -652,6 +787,18 @@ tbody tr:hover {
   .public-header,
   .auth-shell > header {
     padding: 16px;
+  }
+  .public-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .public-header .brand {
+    font-size: 1.1rem;
+    gap: 8px;
+  }
+  .public-header .brand-emblem {
+    width: 32px;
+    height: 32px;
   }
   .auth-header-actions {
     gap: 12px;

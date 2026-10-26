@@ -6,9 +6,11 @@ test('sticky landing navigation reaches sections without covering their headings
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
   if (testInfo.project.name === 'mobile') {
-    await page.locator('.landing-explore summary').click()
-    await page.locator('.landing-explore').getByRole('link', { name: 'FAQs' }).click()
-    await expect(page.locator('.landing-explore')).not.toHaveAttribute('open')
+    await expect(page.locator('.public-header')).toHaveCSS('height', '68px')
+    await page.getByRole('button', { name: 'Open menu', exact: true }).click()
+    const menu = page.getByRole('dialog', { name: 'Explore RepaCircle' })
+    await menu.getByRole('link', { name: 'FAQs' }).click()
+    await expect(menu).not.toBeVisible()
   } else {
     await page
       .getByRole('navigation', { name: 'Page sections' })
