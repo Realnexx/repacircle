@@ -340,6 +340,12 @@ tbody tr:hover {
   padding: 22px 36px;
   background: var(--sidebar);
 }
+.public-header {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  box-shadow: 0 5px 24px #001a0b08;
+}
 .public-app main {
   max-width: 1280px;
 }
