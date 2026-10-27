@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import {
   Building2,
+  Gift,
   LayoutDashboard,
   Menu,
   Users,
@@ -23,6 +24,7 @@ export { Brand } from './brand'
 const icons = {
   dashboard: LayoutDashboard,
   groups: Users,
+  rewards: Gift,
   members: Users,
   settings: Settings,
   reports: FileBarChart,

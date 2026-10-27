@@ -141,6 +141,29 @@ try {
   console.log(
     'PASS: Phase 4 enrollment, invitations, agreements, permissions, suspension, reward history and controlled replacement',
   )
+  await db.exec(
+    await readFile(
+      new URL('../supabase/migrations/20261027055342_phase5_dynamic_rewards.sql', import.meta.url),
+      'utf8',
+    ),
+  )
+  console.log('PASS: Phase 5 dynamic reward migration')
+  await db.exec(await readFile(new URL('../supabase/tests/phase5.sql', import.meta.url), 'utf8'))
+  console.log('PASS: Phase 5 reward catalog, item versions, mixed pricing and funding assignments')
+  await db.exec(
+    await readFile(
+      new URL(
+        '../supabase/migrations/20261027071104_phase6_contribution_deadline_engine.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  )
+  console.log('PASS: Phase 6 contribution/deadline migration')
+  await db.exec(await readFile(new URL('../supabase/tests/phase6.sql', import.meta.url), 'utf8'))
+  console.log(
+    'PASS: Phase 6 schedules, obligations, verified partial contributions, deadlines and idempotent jobs',
+  )
 } catch (error) {
   console.error(
     error.message,

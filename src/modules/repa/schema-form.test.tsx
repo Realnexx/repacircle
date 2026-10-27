@@ -5,6 +5,21 @@ import { FieldDesigner } from './field-designer'
 import { fieldSchema } from './config'
 
 describe('schema renderer monetary input', () => {
+  it('keeps an empty optional actual price unknown rather than coercing it to zero', () => {
+    const change = vi.fn()
+    render(
+      <SchemaForm
+        fields={[{ key: 'actual', label: 'Actual cost', type: 'currency', required: false }]}
+        values={{ actual: 100 }}
+        onChange={change}
+      />,
+    )
+    const input = screen.getByLabelText('Actual cost')
+    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.blur(input)
+    expect(change).toHaveBeenLastCalledWith('actual', null)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
   it('clears the saved amount on invalid input and recovers with exact cents', () => {
     const change = vi.fn()
     render(

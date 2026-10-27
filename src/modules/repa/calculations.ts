@@ -1,4 +1,7 @@
 import { configSchema, type GroupConfig } from './config'
+import type { PlanCosts } from '@/modules/rewards/config'
+import { planMatches } from '@/modules/rewards/pricing'
+import { scheduleDates, deadline } from '@/modules/contributions/engine'
 export type FundingResult = {
   expected_collections_minor: number
   reward_costs_minor: number
@@ -13,8 +16,8 @@ export type FundingResult = {
   errors: string[]
   valid: boolean
 }
-export function schedulePreview(c: GroupConfig) {
-  const anchor = new Date(c.schedule.start_date + 'T00:00:00Z')
+export function schedulePreview(c: GroupConfig, plan?: PlanCosts) {
+  const dates = scheduleDates(c.schedule, c.contribution.round_count)
   const rows = []
   const perRound =
     c.contribution.policy === 'fixed'
@@ -23,34 +26,24 @@ export function schedulePreview(c: GroupConfig) {
   let balance = c.funding.opening_funding_minor - c.funding.disclosed_fees_minor
   const payout = c.reward.unit_cost_minor * c.reward.quantity + c.reward.delivery_per_payout_minor
   for (let i = 0; i < c.contribution.round_count; i++) {
-    let due: Date
-    if (c.schedule.frequency === 'monthly') {
-      due = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + i, 1))
-      const last = new Date(Date.UTC(due.getUTCFullYear(), due.getUTCMonth() + 1, 0)).getUTCDate()
-      due.setUTCDate(Math.min(anchor.getUTCDate(), last))
-    } else {
-      const days =
-        { daily: 1, weekly: 7, biweekly: 14, custom: c.schedule.every_days }[
-          c.schedule.frequency
-        ] ?? 1
-      due = new Date(anchor.getTime() + i * days * 86400000)
-    }
-    const date = due.toISOString().slice(0, 10)
-    const cutoff = new Date(
-      `${date}T${c.schedule.cutoff_time}:00${c.schedule.timezone === 'UTC' ? 'Z' : '+08:00'}`,
-    )
+    const date = dates[i]
+    const times = deadline(date, c.schedule)
     const payouts =
       c.mechanism === 'pooled_savings'
         ? i === c.contribution.round_count - 1
           ? c.contribution.member_count
           : 0
         : 1
-    balance += perRound - payout * payouts
+    balance +=
+      perRound -
+      (c.reward.plan_id && plan
+        ? Number(plan.rounds.find((r) => r.round === i + 1)?.required_minor ?? 0)
+        : payout * payouts)
     rows.push({
       round: i + 1,
       date,
-      cutoff_at: cutoff.toISOString(),
-      grace_ends_at: new Date(cutoff.getTime() + c.schedule.grace_hours * 3600000).toISOString(),
+      cutoff_at: times.due_at,
+      grace_ends_at: times.grace_ends_at,
       collections_minor: perRound,
       payout_count: payouts,
       projected_balance_minor: balance,
@@ -58,7 +51,7 @@ export function schedulePreview(c: GroupConfig) {
   }
   return rows
 }
-export function calculateFunding(input: unknown): FundingResult {
+export function calculateFunding(input: unknown, plan?: PlanCosts): FundingResult {
   const parsed = configSchema.safeParse(input)
   const empty = {
     expected_collections_minor: 0,
@@ -79,19 +72,33 @@ export function calculateFunding(input: unknown): FundingResult {
       errors: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
     }
   const c = parsed.data
-  const schedule = schedulePreview(c)
+  if (c.reward.plan_id && (!plan || !planMatches(c, plan)))
+    return {
+      ...empty,
+      valid: false,
+      errors: [
+        'Load a reward plan matching the current group size, currency, mechanism and allocation rules.',
+      ],
+    }
+  const schedule = schedulePreview(c, plan)
   const payouts =
     c.mechanism === 'pooled_savings' ? c.contribution.member_count : c.contribution.round_count
   const expected = schedule.reduce((s, r) => s + r.collections_minor, 0)
-  const rewards = c.reward.unit_cost_minor * c.reward.quantity * payouts
-  const delivery = c.reward.delivery_per_payout_minor * payouts
+  const rewards =
+    c.reward.plan_id && plan
+      ? Number(plan.required_minor) - Number(plan.delivery_minor)
+      : c.reward.unit_cost_minor * c.reward.quantity * payouts
+  const delivery =
+    c.reward.plan_id && plan
+      ? Number(plan.delivery_minor)
+      : c.reward.delivery_per_payout_minor * payouts
   const fees = c.funding.disclosed_fees_minor
   const available = expected + c.funding.opening_funding_minor
   const target = c.mechanism === 'pooled_savings' ? c.mechanism_options.target_minor : 0
   const required = Math.max(rewards + delivery + fees, target)
   const shortfall = Math.max(0, required - available)
   const liquidity = Math.max(0, ...schedule.map((r) => -r.projected_balance_minor))
-  const errors = []
+  const errors = c.reward.plan_id && plan ? [...plan.errors] : []
   if (shortfall)
     errors.push(
       'Expected collections and declared opening funding do not cover the required funding.',
@@ -108,7 +115,8 @@ export function calculateFunding(input: unknown): FundingResult {
     shortfall_minor: shortfall,
     liquidity_shortfall_minor: liquidity,
     payouts,
-    product_quantity: c.reward.quantity * payouts,
+    product_quantity:
+      c.reward.plan_id && plan ? Number(plan.product_quantity) : c.reward.quantity * payouts,
     valid: errors.length === 0,
     errors,
   }

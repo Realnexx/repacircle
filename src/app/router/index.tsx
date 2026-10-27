@@ -47,6 +47,12 @@ const RepaEditor = lazy(() =>
   import('@/modules/repa/pages').then((m) => ({ default: m.RepaEditor })),
 )
 const RepaDetail = lazy(() => import('@/modules/repa/detail'))
+const RewardEditor = lazy(() =>
+  import('@/modules/rewards/pages').then((m) => ({ default: m.RewardEditor })),
+)
+const RewardDetail = lazy(() =>
+  import('@/modules/rewards/pages').then((m) => ({ default: m.RewardDetail })),
+)
 const JoinGroup = lazy(() => import('@/modules/membership/join'))
 const GroupAgreement = lazy(() => import('@/modules/membership/agreement'))
 const MembershipRequests = lazy(() => import('@/modules/membership/management'))
@@ -114,6 +120,9 @@ const routes: RouteObject[] = [
         ...(workspace.role === 'organizer'
           ? [
               { path: 'groups/new', element: <RepaEditor /> },
+              { path: 'rewards/new', element: <RewardEditor /> },
+              { path: 'rewards/:rewardId/edit', element: <RewardEditor /> },
+              { path: 'rewards/:rewardId', element: <RewardDetail /> },
               { path: 'groups/:groupId/edit', element: <RepaEditor /> },
               { path: 'groups/:groupId', element: <RepaDetail /> },
               { path: 'groups/:groupId/requests', element: <MembershipRequests /> },

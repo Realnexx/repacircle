@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { scheduleDates } from '../contributions/engine.ts'
 export const mechanisms = ['rotating', 'random_draw', 'pooled_savings'] as const
 export const statuses = [
   'draft',
@@ -116,6 +117,7 @@ const common = {
     .strict(),
   reward: z
     .object({
+      plan_id: z.string().uuid().optional(),
       kind: z.enum(['cash', 'physical_product', 'digital_product', 'service', 'mixed', 'custom']),
       title: short,
       unit_cost_minor: money,
@@ -137,11 +139,36 @@ const common = {
       partial_payments: z.boolean(),
       late_policy: z.enum(['flag', 'reject', 'fee']),
       late_fee_minor: money,
+      late_fee_rule: z
+        .object({
+          mode: z.enum(['none', 'fixed', 'percentage']),
+          fixed_minor: money,
+          rate_basis_points: z.number().int().min(0).max(10000),
+          cap_minor: money,
+          review_reference: z.string().trim().max(500),
+          reviewed_by: z.string().trim().max(200),
+          reviewed_on: z.string().max(10),
+          disclosure: z.string().trim().max(4000),
+        })
+        .strict()
+        .optional(),
     })
     .strict(),
   schedule: z
     .object({
-      frequency: z.enum(['daily', 'weekly', 'biweekly', 'monthly', 'custom']),
+      frequency: z.enum([
+        'daily',
+        'weekly',
+        'biweekly',
+        'monthly',
+        'custom',
+        'weekdays',
+        'monthly_dates',
+        'custom_dates',
+      ]),
+      weekdays: z.array(z.number().int().min(1).max(7)).max(7).optional(),
+      monthly_dates: z.array(z.number().int().min(1).max(31)).max(31).optional(),
+      custom_dates: z.array(date).max(1000).optional(),
       every_days: z.number().int().min(1).max(365),
       start_date: date,
       cutoff_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
@@ -242,9 +269,31 @@ export type GroupConfig = z.infer<typeof draftSchema>
 export const configSchema = draftSchema.superRefine((c, ctx) => {
   const issue = (path: string, message: string) =>
     ctx.addIssue({ code: 'custom', path: path.split('.'), message })
+  try {
+    scheduleDates(c.schedule, c.contribution.round_count)
+  } catch (e) {
+    issue('schedule.frequency', e instanceof Error ? e.message : 'Invalid schedule.')
+  }
+  const fee = c.contribution.late_fee_rule
+  if (c.contribution.late_policy === 'fee' && fee && fee.mode !== 'none') {
+    if (
+      !fee.cap_minor ||
+      (fee.mode === 'fixed' && !fee.fixed_minor) ||
+      (fee.mode === 'percentage' && !fee.rate_basis_points) ||
+      fee.review_reference.length < 3 ||
+      fee.reviewed_by.length < 2 ||
+      !date.safeParse(fee.reviewed_on).success ||
+      fee.reviewed_on > new Date().toISOString().slice(0, 10) ||
+      fee.disclosure.length < 20
+    )
+      issue(
+        'contribution.late_fee_rule',
+        'Disclose the fee and record its legal reviewer, review date, reference and positive cap before activation.',
+      )
+  }
   if (c.basic.name.length < 2) issue('basic.name', 'Enter a group name of at least two characters.')
   if (!c.reward.title) issue('reward.title', 'Describe the reward.')
-  if (!c.reward.unit_cost_minor)
+  if (!c.reward.plan_id && !c.reward.unit_cost_minor)
     issue('reward.unit_cost_minor', 'A positive, disclosed reward cost is required.')
   if (!c.contribution.amount_minor)
     issue('contribution.amount_minor', 'A positive contribution is required.')
@@ -275,10 +324,10 @@ export const configSchema = draftSchema.superRefine((c, ctx) => {
       'payment.gateway_provider',
       'Integrated gateways cannot be activated until a provider integration is implemented. Use a manual method for Phase 3.',
     )
-  if (c.contribution.late_policy === 'fee' && c.contribution.late_fee_minor <= 0)
+  if (c.contribution.late_policy === 'fee' && (!fee || fee.mode === 'none'))
     issue(
       'contribution.late_fee_minor',
-      'Disclose a positive late fee. Late fees are excluded from expected funding.',
+      'Record legally reviewed, disclosed late fee terms. Late fees are excluded from expected funding.',
     )
   if (
     c.funding.opening_funding_minor > 0 &&

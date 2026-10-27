@@ -1,4 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getPlan } from '@/modules/rewards/service'
+import type { PlanCosts } from '@/modules/rewards/config'
+import { RewardPlanSummary } from '@/modules/rewards/components'
+import { planMatches } from '@/modules/rewards/pricing'
+import { feeDescription, scheduleDescription } from '@/modules/contributions/engine'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -16,12 +21,22 @@ import {
 export function FundingReview({
   configuration: c,
   showSchedule = true,
+  plan: suppliedPlan,
 }: {
   configuration: GroupConfig
   showSchedule?: boolean
+  plan?: PlanCosts
 }) {
-  const result = calculateFunding(c)
-  const valid = configSchema.safeParse(c).success
+  const query = useQuery({
+    queryKey: ['reward-plan', c.reward.plan_id],
+    enabled: Boolean(c.reward.plan_id && !suppliedPlan),
+    queryFn: () => getPlan(c.reward.plan_id!),
+  })
+  const plan = suppliedPlan ?? query.data
+  const result = calculateFunding(c, plan)
+  const valid =
+    configSchema.safeParse(c).success &&
+    (!c.reward.plan_id || Boolean(plan && planMatches(c, plan)))
   const [schedulePage, setSchedulePage] = useState(1)
   const page = Math.min(schedulePage, Math.max(1, Math.ceil(c.contribution.round_count / 24)))
   return (
@@ -34,8 +49,8 @@ export function FundingReview({
           </StatusBadge>
         </div>
         <p>
-          Projection only. No money is collected, no draws run and no payouts are executed in Phase
-          3. Late fees are excluded from expected collections.
+          Projection only. Late fees are excluded from expected collections. Reward fulfillment and
+          payment execution are outside this phase.
         </p>
         <div className="repa-funding-grid">
           {[
@@ -55,7 +70,8 @@ export function FundingReview({
           ))}
         </div>
         <p>
-          {result.payouts} planned recipients / payouts · {result.product_quantity} reward units
+          {result.payouts} planned recipients / payouts · {result.product_quantity}{' '}
+          {c.reward.plan_id ? 'physical product units' : 'reward units'}
         </p>
         {result.errors.length > 0 && (
           <ul className="repa-validation" role="alert">
@@ -72,8 +88,14 @@ export function FundingReview({
           <dd>{c.mechanism.replaceAll('_', ' ')}</dd>
           <dt>Reward</dt>
           <dd>
-            {c.reward.title} · {c.reward.kind} · {c.reward.quantity} units per recipient at{' '}
-            {moneyText(c.reward.unit_cost_minor, c.basic.currency)} per unit
+            {c.reward.plan_id ? (
+              `${c.reward.title} · Versioned catalog assignments, detailed below.`
+            ) : (
+              <>
+                {c.reward.title} · {c.reward.kind} · {c.reward.quantity} units per recipient at{' '}
+                {moneyText(c.reward.unit_cost_minor, c.basic.currency)} per unit
+              </>
+            )}
           </dd>
           <dt>Payment methods</dt>
           <dd>
@@ -98,10 +120,7 @@ export function FundingReview({
           </dd>
           <dt>Schedule</dt>
           <dd>
-            Starts {c.schedule.start_date} ·{' '}
-            {c.schedule.frequency === 'custom'
-              ? `every ${c.schedule.every_days} days`
-              : c.schedule.frequency}
+            Starts {c.schedule.start_date} · {scheduleDescription(c.schedule)}
             {' · '}cutoff {c.schedule.cutoff_time} ({c.schedule.timezone}) ·{' '}
             {c.schedule.grace_hours} hours grace
           </dd>
@@ -110,7 +129,7 @@ export function FundingReview({
             Partial payments {c.contribution.partial_payments ? 'allowed' : 'not allowed'} · Late
             policy: {c.contribution.late_policy}
             {c.contribution.late_policy === 'fee'
-              ? ` · ${moneyText(c.contribution.late_fee_minor, c.basic.currency)} disclosed late fee`
+              ? ` · ${feeDescription(c.contribution.late_fee_rule)}`
               : ''}
           </dd>
           <dt>Recipient rule</dt>
@@ -169,7 +188,16 @@ export function FundingReview({
           />
         )}
       </section>
-      {valid && c.mechanism === 'pooled_savings' && (
+      {c.reward.plan_id && query.isError && (
+        <p role="alert">
+          Reward plan unavailable.{' '}
+          <Button variant="secondary" onClick={() => void query.refetch()}>
+            Retry reward plan
+          </Button>
+        </p>
+      )}
+      {c.reward.plan_id && plan && <RewardPlanSummary configuration={c} plan={plan} />}
+      {valid && !c.reward.plan_id && c.mechanism === 'pooled_savings' && (
         <section className="panel component-spacing">
           <h2>Pooled allocation preview</h2>
           <p>
@@ -208,7 +236,7 @@ export function FundingReview({
             <>
               <DataTable
                 caption="Projected REPA schedule"
-                rows={schedulePreview(c).slice((page - 1) * 24, page * 24)}
+                rows={schedulePreview(c, plan).slice((page - 1) * 24, page * 24)}
                 rowKey={(r) => String(r.round)}
                 columns={[
                   { key: 'round', header: 'Round', render: (r) => r.round },

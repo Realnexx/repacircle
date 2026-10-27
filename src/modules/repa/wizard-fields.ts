@@ -78,6 +78,9 @@ export const stepFields: Record<number, RenderField[]> = {
       'biweekly',
       'monthly',
       'custom',
+      'weekdays',
+      'monthly_dates',
+      'custom_dates',
     ]),
     f('schedule.every_days', 'Days between contributions', 'number', undefined, {
       min: 1,

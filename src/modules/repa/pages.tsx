@@ -21,6 +21,7 @@ import { FieldDesigner } from './field-designer'
 import { FundingReview, ActivationPanel } from './review'
 import { getRepaGroup, listRepaGroups, saveRepaDraft, type RepaBundle } from './service'
 import { stepFields, wizardSteps } from './wizard-fields'
+import { ContributionRuleFields } from '@/modules/contributions/rule-fields'
 import './styles.css'
 
 export default function RepaList({ embedded = false }: { embedded?: boolean }) {
@@ -396,7 +397,13 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
               </label>
             )}
             <SchemaForm
-              fields={stepFields[step]}
+              fields={
+                step === 2 && c.reward.plan_id
+                  ? stepFields[step].filter((f) => f.key === 'reward.details')
+                  : step === 3 && c.contribution.late_fee_rule
+                    ? stepFields[step].filter((f) => f.key !== 'contribution.late_fee_minor')
+                    : stepFields[step]
+              }
               values={values}
               onChange={change}
               groupId={saved?.group.id}
@@ -404,6 +411,25 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
             />
             {(step === 2 || step === 6) && (
               <>
+                {step === 2 && (
+                  <section className="component-spacing">
+                    <h3>Versioned reward catalog</h3>
+                    <p>
+                      Save this group draft, then assign published rewards, mixed bundles and
+                      round-specific quantities from its Rewards tab.
+                    </p>
+                    {saved && !dirty ? (
+                      <Link
+                        className="button button-secondary"
+                        to={`/organizer/groups/${saved.group.id}#rewards`}
+                      >
+                        Configure catalog rewards
+                      </Link>
+                    ) : (
+                      <p>Save your changes to enable catalog assignments.</p>
+                    )}
+                  </section>
+                )}
                 <FieldDesigner
                   category={step === 2 ? 'reward' : 'membership'}
                   fields={c.fields.filter(
@@ -426,6 +452,7 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
                 )}
               </>
             )}
+            {step === 3 && <ContributionRuleFields configuration={c} onChange={change} />}
             {error && (
               <p className="error repa-terms" role="alert">
                 {error}

@@ -87,12 +87,14 @@ function AgreementForm({ bundle: b }: { bundle: AgreementBundle }) {
       : (c.contribution.member_amounts.find((a) => a.slot === slot)?.amount_minor ?? 0)
   const details: Record<keyof typeof agreementSections, string> = {
     contribution: `Member slot ${slot}: ${moneyText(contribution, c.basic.currency)} per round. ${c.contribution.round_count} rounds.`,
-    schedule: `${c.schedule.frequency}${c.schedule.frequency === 'custom' ? ` (${c.schedule.every_days} days)` : ''}, starting ${c.schedule.start_date}. See every due date below.`,
+    schedule: `${scheduleDescription(c.schedule)}, starting ${c.schedule.start_date}. See every due date below.`,
     deadlines: `Cutoff ${c.schedule.cutoff_time} (${c.schedule.timezone}); ${c.schedule.grace_hours} hours grace.`,
-    reward: `${c.reward.title} — ${c.reward.kind.replaceAll('_', ' ')}. ${c.reward.quantity} units per recipient; disclosed unit value ${moneyText(c.reward.unit_cost_minor, c.basic.currency)}. ${c.reward.details}`,
+    reward: c.reward.plan_id
+      ? `${c.reward.title}. Immutable catalog assignments, costs and round allocations are shown in the reward plan below and recorded with this agreement.`
+      : `${c.reward.title} — ${c.reward.kind.replaceAll('_', ' ')}. ${c.reward.quantity} units per recipient; disclosed unit value ${moneyText(c.reward.unit_cost_minor, c.basic.currency)}. ${c.reward.details}`,
     mechanism: c.mechanism.replaceAll('_', ' '),
     selection: `${c.distribution.rule.replaceAll('_', ' ')}. Eligibility: ${c.distribution.eligibility.replaceAll('_', ' ')}${c.distribution.eligibility === 'minimum_percent' ? ` (${c.distribution.minimum_percent}%)` : ''}. ${c.distribution.approval_count} payout approver(s).${c.mechanism === 'rotating' ? ` Slot order: ${c.distribution.rotation_order.join(' → ')}.` : ''}`,
-    late_policy: `${c.contribution.late_policy.replaceAll('_', ' ')}${c.contribution.late_policy === 'fee' ? ` — ${moneyText(c.contribution.late_fee_minor, c.basic.currency)} late fee` : ''}. Partial payments ${c.contribution.partial_payments ? 'allowed' : 'not allowed'}.`,
+    late_policy: `${c.contribution.late_policy.replaceAll('_', ' ')}${c.contribution.late_policy === 'fee' ? ` — ${feeDescription(c.contribution.late_fee_rule)}` : ''}. Partial payments ${c.contribution.partial_payments ? 'allowed' : 'not allowed'}.`,
     refund_exit: b.policies.refund_exit_policy,
     disputes: b.policies.dispute_process,
     privacy: b.policies.privacy_notice,
@@ -201,3 +203,4 @@ export default function GroupAgreementPage() {
     </>
   )
 }
+import { feeDescription, scheduleDescription } from '@/modules/contributions/engine'

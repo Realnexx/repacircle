@@ -1,6 +1,6 @@
 # RepaCircle
 
-React + TypeScript + Vite application. Phase 4 adds secure REPA enrollment, exact-version agreements, scoped staff access, member profiles/status/history and controlled replacement to the Phase 3 configuration engine. Financial transaction execution is not implemented. See [Phase 4](PHASE-4.md) for membership workflows and local-only rollout, and [Phase 3](PHASE-3.md) for configuration and funding assumptions.
+React + TypeScript + Vite application. Phase 6 adds accepted contribution schedules, authoritative obligations and verified receipt allocations, deadline/grace/overdue jobs, reviewed fee rules, extensions/waivers and collection dashboards. See [Phase 6](PHASE-6.md) for the local-only migration and workflow, [Phase 5](PHASE-5.md) for rewards, [Phase 4](PHASE-4.md) for membership and [Phase 3](PHASE-3.md) for group configuration. Payment initiation and reward fulfillment execution are not implemented.
 
 ## Start locally
 

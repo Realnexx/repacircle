@@ -1,0 +1,135 @@
+.reward-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+  margin: 22px 0;
+}
+.reward-catalog-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.reward-card-price {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+.reward-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 20px 0;
+  align-items: end;
+}
+.reward-filter label {
+  flex: 1 1 170px;
+}
+.reward-subtitle {
+  display: block;
+  color: var(--muted-foreground);
+  margin-top: 5px;
+}
+.reward-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 160px));
+  gap: 12px;
+  margin: 20px 0;
+}
+.reward-gallery button {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--background);
+  padding: 0;
+  aspect-ratio: 1;
+  cursor: pointer;
+}
+.reward-gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.reward-full-image {
+  display: block;
+  width: 100%;
+  max-height: 65dvh;
+  object-fit: contain;
+  margin-top: 16px;
+}
+dialog.reward-lightbox,
+dialog.reward-selector {
+  width: min(900px, calc(100vw - 32px));
+  max-width: 900px;
+}
+.reward-price-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin: 22px 0;
+}
+.reward-price-grid > div {
+  padding: 18px;
+  background: var(--input-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-width: 0;
+}
+.reward-price-grid strong {
+  display: block;
+  margin-top: 12px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.reward-type-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.reward-detail-fold {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+.reward-detail-fold summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.reward-template-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+.reward-inline-error {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.reward-component-row {
+  border: 1px solid var(--border);
+  padding: 18px;
+  border-radius: 10px;
+  margin: 14px 0;
+}
+.reward-editor-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.reward-editor-fieldset:disabled {
+  opacity: 0.7;
+}
+@media (max-width: 40rem) {
+  .reward-price-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .reward-price-grid > div {
+    padding: 12px;
+  }
+  .reward-price-grid strong {
+    font-size: 0.875rem;
+  }
+  .reward-template-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

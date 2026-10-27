@@ -9,6 +9,10 @@ export type RenderField = Omit<FieldDefinition, 'category' | 'children'> & {
   when?: (values: Record<string, unknown>) => boolean
   children?: RenderField[]
 }
+export type FormFileStorage = {
+  upload: (file: File, image: boolean) => Promise<string>
+  url: (path: string) => Promise<string>
+}
 export function getPath(values: Record<string, unknown>, path: string): unknown {
   return path
     .split('.')
@@ -38,12 +42,14 @@ export function SchemaForm({
   onChange,
   groupId,
   errors = {},
+  fileStorage,
 }: {
   fields: readonly RenderField[]
   values: Record<string, unknown>
   onChange: (path: string, value: unknown) => void
   groupId?: string
   errors?: Record<string, string>
+  fileStorage?: FormFileStorage
 }) {
   return (
     <div className="repa-fields">
@@ -55,6 +61,7 @@ export function SchemaForm({
           change={onChange}
           groupId={groupId}
           error={errors[f.key]}
+          fileStorage={fileStorage}
         />
       ))}
     </div>
@@ -66,12 +73,14 @@ function Field({
   change,
   groupId,
   error,
+  fileStorage,
 }: {
   field: RenderField
   values: Record<string, unknown>
   change: (path: string, value: unknown) => void
   groupId?: string
   error?: string
+  fileStorage?: FormFileStorage
 }) {
   const id = useId()
   const [busy, setBusy] = useState(false)
@@ -156,6 +165,7 @@ function Field({
               fields={f.children ?? []}
               values={row}
               groupId={groupId}
+              fileStorage={fileStorage}
               onChange={(path, val) =>
                 save(rows.map((r, n) => (n === i ? setPath(r, path, val) : r)))
               }
@@ -180,7 +190,7 @@ function Field({
         <input
           {...shared}
           type="file"
-          disabled={!groupId || busy}
+          disabled={(!groupId && !fileStorage) || busy}
           accept={
             f.type === 'image'
               ? 'image/png,image/jpeg,image/webp'
@@ -188,11 +198,15 @@ function Field({
           }
           onChange={async (e) => {
             const file = e.target.files?.[0]
-            if (!file || !groupId) return
+            if (!file || (!groupId && !fileStorage)) return
             setBusy(true)
             setFileError('')
             try {
-              save(await uploadRepaFile(groupId, file, f.type === 'image'))
+              save(
+                await (fileStorage
+                  ? fileStorage.upload(file, f.type === 'image')
+                  : uploadRepaFile(groupId!, file, f.type === 'image')),
+              )
             } catch (err) {
               setFileError(err instanceof Error ? err.message : 'Upload failed.')
             } finally {
@@ -201,14 +215,20 @@ function Field({
             }
           }}
         />
-        {!groupId && <p className="field-hint">Save the draft once to enable private uploads.</p>}
+        {!groupId && !fileStorage && (
+          <p className="field-hint">Save the draft once to enable private uploads.</p>
+        )}
         {busy && <p role="status">Uploading…</p>}
         {typeof v === 'string' && v && (
           <Button
             variant="ghost"
             onClick={async () => {
               try {
-                window.open(await repaFileUrl(v), '_blank', 'noopener,noreferrer')
+                window.open(
+                  await (fileStorage ? fileStorage.url(v) : repaFileUrl(v)),
+                  '_blank',
+                  'noopener,noreferrer',
+                )
               } catch (err) {
                 setFileError(err instanceof Error ? err.message : 'Preview failed.')
               }
@@ -232,6 +252,11 @@ function Field({
         defaultValue={typeof v === 'number' ? displayCentavos(String(v)) : ''}
         key={String(v)}
         onBlur={(e) => {
+          if (!f.required && e.target.value.trim() === '') {
+            setFileError('')
+            save(null)
+            return
+          }
           const cents = parseCentavos(e.target.value)
           if (
             cents !== null &&

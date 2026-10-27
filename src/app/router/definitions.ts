@@ -39,6 +39,11 @@ export const workspaces: {
       },
       { slug: 'members', title: 'Members', description: 'Manage the people in your community.' },
       {
+        slug: 'rewards',
+        title: 'Reward catalog',
+        description: 'Configure reusable rewards and exact fulfillment costs.',
+      },
+      {
         slug: 'contributions',
         title: 'Contributions',
         description: 'Track contribution schedules and commitments.',

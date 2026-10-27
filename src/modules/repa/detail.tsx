@@ -11,6 +11,8 @@ import { getRepaGroup, repaFileUrl, transitionGroup, type RepaBundle } from './s
 import { transitions, type GroupStatus } from './config'
 import { FundingReview, ActivationPanel } from './review'
 import MembershipPanel from '@/modules/membership/panel'
+import GroupRewardsPanel from '@/modules/rewards/group-panel'
+import ContributionsPage from '@/modules/contributions/pages'
 import './styles.css'
 export default function RepaDetail() {
   const { groupId } = useParams()
@@ -35,7 +37,13 @@ export default function RepaDetail() {
 function GroupDetail({ bundle }: { bundle: RepaBundle }) {
   const location = useLocation()
   const [tab, setTab] = useState(
-    location.hash === '#members' ? 'Members & agreements' : 'Rules & funding',
+    location.hash === '#members'
+      ? 'Members & agreements'
+      : location.hash === '#contributions'
+        ? 'Contributions'
+        : location.hash === '#rewards'
+          ? 'Rewards'
+          : 'Rules & funding',
   )
   const g = bundle.group
   const image = useQuery({
@@ -61,6 +69,8 @@ function GroupDetail({ bundle }: { bundle: RepaBundle }) {
         {[
           'Rules & funding',
           'Members & agreements',
+          'Rewards',
+          'Contributions',
           'Schedule',
           'Settings',
           'Configuration history',
@@ -106,6 +116,8 @@ function GroupDetail({ bundle }: { bundle: RepaBundle }) {
       )}
       {tab === 'Schedule' && <FundingReview configuration={c} />}
       {tab === 'Members & agreements' && <MembershipPanel bundle={bundle} />}
+      {tab === 'Rewards' && <GroupRewardsPanel bundle={bundle} />}
+      {tab === 'Contributions' && <ContributionsPage embeddedGroup={g.id} />}
       {tab === 'Settings' && (
         <>
           {bundle.can_manage ? (
