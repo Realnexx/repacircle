@@ -648,6 +648,11 @@ tbody tr:hover {
   background: #232326;
 }
 .auth-tabs a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid transparent;
   padding: 10px 8px;
   text-align: center;
   border-radius: 6px;
@@ -656,9 +661,18 @@ tbody tr:hover {
   font-weight: 600;
 }
 .auth-tabs a.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  font-weight: 750;
+  box-shadow: var(--shadow-sm);
+}
+.auth-tabs a:not(.active):hover {
   background: var(--secondary);
   color: var(--foreground);
-  box-shadow: var(--shadow-sm);
+}
+.auth-tabs a:focus-visible {
+  outline-offset: 2px;
 }
 .auth-shell--setup main {
   max-width: 1380px;

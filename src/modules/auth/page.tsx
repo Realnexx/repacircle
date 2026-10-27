@@ -119,10 +119,12 @@ export default function AuthPage() {
     <>
       <span className="eyebrow">YOUR COMMUNITY STARTS HERE</span>
       <h1>{title}</h1>
-      <p>
+      <p className="auth-intro">
         {forgot
           ? 'We’ll send a link to help you get back in.'
-          : 'One place for your community’s savings journey.'}
+          : register
+            ? 'Your savings journey starts here.'
+            : 'One place for your community’s savings journey.'}
       </p>
       <form onSubmit={submit} noValidate>
         {register && (
@@ -181,9 +183,8 @@ export default function AuthPage() {
         )}
         {register && (
           <p className="field-hint">
-            Review our <Link to="/privacy">draft privacy policy</Link> and{' '}
-            <Link to="/terms">draft terms</Link>. Roles are granted by organization owners, never
-            through registration.
+            Read our <Link to="/privacy">draft privacy policy</Link> and{' '}
+            <Link to="/terms">draft terms</Link>.
           </p>
         )}
         {error && (
@@ -228,16 +229,19 @@ export default function AuthPage() {
       )}
       {googleOAuthEnabled && !forgot && !reset && (
         <p className="field-hint">
-          Continue with Google to sign in or create your account automatically. New accounts will
-          complete personal information next.
+          {register
+            ? 'Google signs you in or creates your account.'
+            : 'Continue with Google to sign in or create your account automatically. New accounts will complete personal information next.'}
         </p>
       )}
-      <div className="auth-links">
-        {!forgot && !reset && <Link to="/forgot-password">Forgot password?</Link>}
-        <Link to={register || forgot || reset ? '/login' : '/register'}>
-          {register || forgot || reset ? 'Back to sign in' : 'Create an account'}
-        </Link>
-      </div>
+      {!register && (
+        <div className="auth-links">
+          {!forgot && !reset && <Link to="/forgot-password">Forgot password?</Link>}
+          <Link to={register || forgot || reset ? '/login' : '/register'}>
+            {register || forgot || reset ? 'Back to sign in' : 'Create an account'}
+          </Link>
+        </div>
+      )}
     </>
   )
 }

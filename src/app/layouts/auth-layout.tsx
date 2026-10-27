@@ -7,10 +7,13 @@ import { authPages } from '../router/definitions'
 export function AuthLayout() {
   const location = useLocation()
   const setup = location.pathname === '/profile/setup'
+  const register = location.pathname === '/register'
   const showTabs = ['/login', '/register'].includes(location.pathname)
   usePageTitle(authPages.find((p) => p.path === location.pathname)?.title ?? 'Account')
   return (
-    <div className={`app auth-shell${setup ? ' auth-shell--setup' : ''}`}>
+    <div
+      className={`app auth-shell${setup ? ' auth-shell--setup' : ''}${register ? ' auth-shell--register' : ''}`}
+    >
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
@@ -56,8 +59,12 @@ export function AuthLayout() {
           <div className="auth-card">
             {showTabs && (
               <nav className="auth-tabs" aria-label="Account access">
-                <NavLink to="/login">Sign in</NavLink>
-                <NavLink to="/register">Create account</NavLink>
+                <NavLink to="/login" end>
+                  Sign in
+                </NavLink>
+                <NavLink to="/register" end>
+                  Create account
+                </NavLink>
               </nav>
             )}
             <Outlet />

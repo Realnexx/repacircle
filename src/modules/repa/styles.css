@@ -54,6 +54,88 @@
 .repa-field-wide {
   grid-column: 1/-1;
 }
+.repa-inline-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+  border-left: 3px solid var(--danger);
+  border-radius: 8px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.repa-inline-error svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.repa-field-invalid > label,
+.repa-field-invalid > fieldset > legend {
+  color: var(--danger);
+}
+.repa-field-invalid :is(input, select, textarea, fieldset)[aria-invalid='true'] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 25%, transparent);
+}
+.repa-field-invalid :is(input, select, textarea)[aria-invalid='true']:focus-visible {
+  outline: 2px solid var(--danger);
+  outline-offset: 3px;
+}
+.repa-error-summary {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid var(--danger);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.repa-error-summary h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font-size: 0.9375rem;
+}
+.repa-error-summary h3 svg {
+  flex-shrink: 0;
+}
+.repa-error-summary p {
+  margin: 8px 0;
+  color: inherit;
+  font-size: 0.8125rem;
+}
+.repa-error-summary ul {
+  padding-left: 20px;
+  margin-bottom: 0;
+}
+.repa-error-summary button {
+  min-height: 36px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.repa-error-summary button:hover {
+  text-decoration-thickness: 2px;
+}
+.repa-step-nav .repa-step-error {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--danger);
+}
 .repa-fields .form-field:has(textarea),
 .repa-fields .form-field:has(input[type='file']) {
   grid-column: 1/-1;

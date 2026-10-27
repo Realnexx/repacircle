@@ -1,8 +1,10 @@
 import { useId, useState } from 'react'
+import { CircleAlert } from 'lucide-react'
 import type { FieldDefinition } from './config'
 import { displayCentavos, parseCentavos } from '@/lib/utils/currency'
 import { repaFileUrl, uploadRepaFile } from './service'
 import { Button } from '@/components/ui/button'
+import './styles.css'
 export type RenderField = Omit<FieldDefinition, 'category' | 'children'> & {
   category?: FieldDefinition['category']
   hint?: string
@@ -12,6 +14,15 @@ export type RenderField = Omit<FieldDefinition, 'category' | 'children'> & {
 export type FormFileStorage = {
   upload: (file: File, image: boolean) => Promise<string>
   url: (path: string) => Promise<string>
+}
+export function InlineFieldError({ id, message }: { id?: string; message?: string }) {
+  if (!message) return null
+  return (
+    <p className="repa-inline-error" role="alert" id={id}>
+      <CircleAlert size={16} aria-hidden="true" />
+      <span>{message}</span>
+    </p>
+  )
 }
 export function getPath(values: Record<string, unknown>, path: string): unknown {
   return path
@@ -43,6 +54,8 @@ export function SchemaForm({
   groupId,
   errors = {},
   fileStorage,
+  onFieldBlur,
+  pathPrefix = '',
 }: {
   fields: readonly RenderField[]
   values: Record<string, unknown>
@@ -50,6 +63,8 @@ export function SchemaForm({
   groupId?: string
   errors?: Record<string, string>
   fileStorage?: FormFileStorage
+  onFieldBlur?: (path: string) => void
+  pathPrefix?: string
 }) {
   return (
     <div className="repa-fields">
@@ -60,7 +75,9 @@ export function SchemaForm({
           values={values}
           change={onChange}
           groupId={groupId}
-          error={errors[f.key]}
+          errors={errors}
+          path={pathPrefix + f.key}
+          onFieldBlur={onFieldBlur}
           fileStorage={fileStorage}
         />
       ))}
@@ -72,20 +89,25 @@ function Field({
   values,
   change,
   groupId,
-  error,
+  errors,
+  path,
+  onFieldBlur,
   fileStorage,
 }: {
   field: RenderField
   values: Record<string, unknown>
   change: (path: string, value: unknown) => void
   groupId?: string
-  error?: string
+  errors: Record<string, string>
+  path: string
+  onFieldBlur?: (path: string) => void
   fileStorage?: FormFileStorage
 }) {
   const id = useId()
   const [busy, setBusy] = useState(false)
   const [fileError, setFileError] = useState('')
   const v = getPath(values, f.key)
+  const error = fileError || errors[path]
   if (
     (f.when && !f.when(values)) ||
     (f.condition && getPath(values, f.condition.key) !== f.condition.equals)
@@ -93,8 +115,9 @@ function Field({
     return null
   const shared = {
     id,
-    'aria-invalid': Boolean(error || fileError),
-    'aria-describedby': error || fileError ? id + '-error' : f.hint ? id + '-hint' : undefined,
+    'aria-invalid': Boolean(error),
+    'aria-describedby':
+      [f.hint && id + '-hint', error && id + '-error'].filter(Boolean).join(' ') || undefined,
   }
   const save = (val: unknown) => change(f.key, val)
   let control
@@ -136,6 +159,8 @@ function Field({
         {f.options?.map((o) => (
           <label className="checkbox-label" key={o}>
             <input
+              aria-invalid={shared['aria-invalid']}
+              aria-describedby={shared['aria-describedby']}
               type={f.type === 'radio' ? 'radio' : 'checkbox'}
               name={id}
               checked={f.type === 'radio' ? v === o : Array.isArray(v) && v.includes(o)}
@@ -157,7 +182,7 @@ function Field({
   else if (f.type === 'repeating') {
     const rows = Array.isArray(v) ? (v as Record<string, unknown>[]) : []
     control = (
-      <fieldset>
+      <fieldset {...shared}>
         <legend>{f.label}</legend>
         {rows.map((row, i) => (
           <div className="repa-repeat-row" key={i}>
@@ -166,6 +191,9 @@ function Field({
               values={row}
               groupId={groupId}
               fileStorage={fileStorage}
+              errors={errors}
+              pathPrefix={`${path}.${i}.`}
+              onFieldBlur={onFieldBlur}
               onChange={(path, val) =>
                 save(rows.map((r, n) => (n === i ? setPath(r, path, val) : r)))
               }
@@ -237,11 +265,6 @@ function Field({
             View uploaded {f.type}
           </Button>
         )}
-        {fileError && (
-          <p role="alert" className="error">
-            {fileError}
-          </p>
-        )}
       </div>
     )
   else if (f.type === 'currency')
@@ -305,7 +328,13 @@ function Field({
     )
   const grouped = ['radio', 'multi_select', 'repeating'].includes(f.type)
   return (
-    <div className={`form-field${grouped ? ' repa-field-wide' : ''}`}>
+    <div
+      className={`form-field${grouped ? ' repa-field-wide' : ''}${error ? ' repa-field-invalid' : ''}`}
+      data-field-path={path}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) onFieldBlur?.(path)
+      }}
+    >
       <label
         className={f.type === 'checkbox' ? 'checkbox-label' : undefined}
         htmlFor={grouped ? undefined : id}
@@ -328,11 +357,7 @@ function Field({
           {f.hint}
         </p>
       )}
-      {(error || fileError) && (
-        <p className="error" role="alert" id={id + '-error'}>
-          {error || fileError}
-        </p>
-      )}
+      <InlineFieldError id={id + '-error'} message={error} />
     </div>
   )
 }

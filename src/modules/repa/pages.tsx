@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { CircleAlert } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -9,20 +10,42 @@ import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/layout/page'
 import { ErrorState, LoadingSkeleton, EmptyState } from '@/components/feedback/states'
 import { StatusBadge } from '@/components/data-display/components'
-import {
-  configSchema,
-  defaultConfig,
-  draftSchema,
-  type GroupConfig,
-  type FieldDefinition,
-} from './config'
-import { SchemaForm, setPath } from './schema-form'
+import { defaultConfig, draftSchema, type GroupConfig, type FieldDefinition } from './config'
+import { InlineFieldError, SchemaForm, setPath } from './schema-form'
+import { inlineErrors, wizardIssues, type WizardIssue } from './validation'
 import { FieldDesigner } from './field-designer'
 import { FundingReview, ActivationPanel } from './review'
 import { getRepaGroup, listRepaGroups, saveRepaDraft, type RepaBundle } from './service'
 import { stepFields, wizardSteps } from './wizard-fields'
 import { ContributionRuleFields } from '@/modules/contributions/rule-fields'
 import './styles.css'
+
+function versionRecordIssues(
+  summary: string,
+  effective: string,
+  future: boolean,
+  now: number,
+): WizardIssue[] {
+  const issues: WizardIssue[] = []
+  if (summary.trim().length < 3 || summary.length > 1000)
+    issues.push({
+      path: 'version.summary',
+      label: 'Change summary',
+      step: 7,
+      message: 'Describe the change using 3–1,000 characters.',
+    })
+  if (
+    future &&
+    (!effective || !Number.isFinite(Date.parse(effective)) || Date.parse(effective) <= now)
+  )
+    issues.push({
+      path: 'version.effective',
+      label: 'Future effective date and time',
+      step: 7,
+      message: 'Choose a valid date and time in the future.',
+    })
+  return issues
+}
 
 export default function RepaList({ embedded = false }: { embedded?: boolean }) {
   const access = useAccess()
@@ -204,6 +227,34 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
     ),
   )
   const [error, setError] = useState('')
+  const [touched, setTouched] = useState<string[]>([])
+  const [checkedSteps, setCheckedSteps] = useState<number[]>([])
+  const [saveAttempted, setSaveAttempted] = useState(false)
+  const [validationTime] = useState(() => Date.now())
+  const [focusRequest, setFocusRequest] = useState<{ path: string } | null>(null)
+  const wizardRef = useRef<HTMLDivElement>(null)
+  const touch = (path: string) => {
+    setTouched((old) => (old.includes(path) ? old : [...old, path]))
+  }
+  const showField = (issue: WizardIssue) => {
+    setStep(issue.step)
+    touch(issue.path)
+    setFocusRequest({ path: issue.path })
+  }
+  useEffect(() => {
+    if (!focusRequest) return
+    const fields = Array.from(
+      wizardRef.current?.querySelectorAll<HTMLElement>('[data-field-path]') ?? [],
+    )
+    const field =
+      fields.find((element) => element.dataset.fieldPath === focusRequest.path) ??
+      fields.find((element) => focusRequest.path.startsWith(element.dataset.fieldPath + '.'))
+    const control = field?.querySelector<HTMLElement>(
+      'input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)',
+    )
+    control?.focus({ preventScroll: true })
+    field?.scrollIntoView({ block: 'center' })
+  }, [focusRequest])
   const [summary, setSummary] = useState(
     initial ? 'Update group configuration' : 'Initial group configuration',
   )
@@ -297,8 +348,13 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
   const save = async () => {
     setError('')
     const parsed = draftSchema.safeParse(c)
-    if (!parsed.success) {
-      setError(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('\n'))
+    const failures = [
+      ...wizardIssues(c, 'draft'),
+      ...versionIssues,
+    ]
+    if (!parsed.success || failures.length) {
+      setSaveAttempted(true)
+      if (failures[0]) showField(failures[0])
       return
     }
     setBusy(true)
@@ -324,15 +380,32 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
       setBusy(false)
     }
   }
-  const validated = configSchema.safeParse(c)
-  const issues = validated.success
-    ? {}
-    : Object.fromEntries(validated.error.issues.map((i) => [i.path.join('.'), i.message]))
+  const future = Boolean(saved?.group.accepted_version_id)
+  const versionIssues = versionRecordIssues(summary, effective, future, validationTime)
+  const allIssues = [...wizardIssues(c), ...versionIssues]
+  const draftIssues = saveAttempted ? [...wizardIssues(c, 'draft'), ...versionIssues] : []
+  const visibleIssues = allIssues.filter(
+    (issue) =>
+      step === 7 ||
+      checkedSteps.includes(issue.step) ||
+      touched.some(
+        (path) =>
+          issue.path === path ||
+          issue.path.startsWith(path + '.') ||
+          path.startsWith(issue.path + '.'),
+      ) ||
+      draftIssues.some((draft) => draft.path === issue.path),
+  )
+  const issues = inlineErrors(visibleIssues)
+  const summaryIssues = visibleIssues.filter(
+    (issue, index) =>
+      (step === 7 || saveAttempted || issue.step === step) &&
+      visibleIssues.findIndex((other) => other.path === issue.path) === index,
+  )
   const values = {
     ...c,
     rotation_order_input: rotationInput,
   } as unknown as Record<string, unknown>
-  const future = Boolean(saved?.group.accepted_version_id)
   return (
     <>
       <PageHeader
@@ -360,12 +433,15 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
               >
                 <span>{String(i + 1).padStart(2, '0')}</span>
                 {title}
+                {visibleIssues.some((issue) => issue.step === i) && (
+                  <CircleAlert className="repa-step-error" size={16} aria-label="Needs attention" />
+                )}
               </button>
             ))}
           </nav>
           <small>Drafts do not create financial obligations.</small>
         </aside>
-        <div className="repa-wizard-main">
+        <div className="repa-wizard-main" ref={wizardRef}>
           <section className="panel">
             <span className="eyebrow">STEP {step + 1} OF 8</span>
             <h2 className="component-spacing">{wizardSteps[step]}</h2>
@@ -378,6 +454,28 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
                     ? 'Manual methods record instructions. An integrated gateway can be configured as a draft but cannot be activated in Phase 3.'
                     : 'Fields marked * are required for activation. Save drafts while you configure the remaining steps.'}
             </p>
+            {summaryIssues.length > 0 && (
+              <section className="repa-error-summary" aria-labelledby="repa-error-heading">
+                <h3 id="repa-error-heading">
+                  <CircleAlert size={20} aria-hidden="true" />
+                  {summaryIssues.length}{' '}
+                  {summaryIssues.length === 1 ? 'field needs' : 'fields need'} attention
+                </h3>
+                <p>
+                  Select an issue to go to its field. Required rules must be complete before
+                  activation.
+                </p>
+                <ul>
+                  {summaryIssues.map((issue) => (
+                    <li key={issue.path}>
+                      <button type="button" onClick={() => showField(issue)}>
+                        <strong>{issue.label}:</strong> {issues[issue.path]}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             {step === 0 && (
               <label className="component-spacing">
                 Organization
@@ -407,7 +505,8 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
               values={values}
               onChange={change}
               groupId={saved?.group.id}
-              errors={step === 7 ? issues : {}}
+              errors={issues}
+              onFieldBlur={touch}
             />
             {(step === 2 || step === 6) && (
               <>
@@ -430,13 +529,21 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
                     )}
                   </section>
                 )}
-                <FieldDesigner
-                  category={step === 2 ? 'reward' : 'membership'}
-                  fields={c.fields.filter(
-                    (f) => f.category === (step === 2 ? 'reward' : 'membership'),
-                  )}
-                  onChange={(fields) => design(step === 2 ? 'reward' : 'membership', fields)}
-                />
+                <div
+                  data-field-path={`fields.${step === 2 ? 'reward' : 'membership'}`}
+                  onBlur={() => touch(`fields.${step === 2 ? 'reward' : 'membership'}`)}
+                >
+                  <FieldDesigner
+                    category={step === 2 ? 'reward' : 'membership'}
+                    fields={c.fields.filter(
+                      (f) => f.category === (step === 2 ? 'reward' : 'membership'),
+                    )}
+                    onChange={(fields) => design(step === 2 ? 'reward' : 'membership', fields)}
+                  />
+                  <InlineFieldError
+                    message={issues[`fields.${step === 2 ? 'reward' : 'membership'}`]}
+                  />
+                </div>
                 {step === 2 && (
                   <>
                     <h3 className="component-spacing">Custom reward values</h3>
@@ -447,22 +554,39 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
                         change('reward.custom_values', setPath(c.reward.custom_values, path, value))
                       }
                       groupId={saved?.group.id}
+                      errors={issues}
+                      pathPrefix="reward.custom_values."
+                      onFieldBlur={touch}
                     />
                   </>
                 )}
               </>
             )}
-            {step === 3 && <ContributionRuleFields configuration={c} onChange={change} />}
-            {error && (
-              <p className="error repa-terms" role="alert">
-                {error}
-              </p>
+            {step === 3 && (
+              <ContributionRuleFields
+                configuration={c}
+                onChange={change}
+                errors={issues}
+                onFieldBlur={touch}
+              />
             )}
+            {error && <InlineFieldError message={error} />}
             <div className="actions component-spacing">
               <Button variant="secondary" disabled={step === 0} onClick={() => setStep(step - 1)}>
                 Previous step
               </Button>
-              {step < 7 && <Button onClick={() => setStep(step + 1)}>Next step</Button>}
+              {step < 7 && (
+                <Button
+                  onClick={() => {
+                    setCheckedSteps((old) => (old.includes(step) ? old : [...old, step]))
+                    const first = allIssues.find((issue) => issue.step === step)
+                    if (first) showField(first)
+                    else setStep(step + 1)
+                  }}
+                >
+                  Next step
+                </Button>
+              )}
               <Button variant="secondary" disabled={busy} onClick={() => void save()}>
                 {busy ? 'Saving…' : 'Save draft'}
               </Button>
@@ -472,9 +596,16 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
             <>
               <section className="panel component-spacing">
                 <h2>Version record</h2>
-                <label>
-                  Change summary
+                <div
+                  className={`form-field${issues['version.summary'] ? ' repa-field-invalid' : ''}`}
+                  data-field-path="version.summary"
+                >
+                  <label htmlFor="repa-change-summary">Change summary</label>
                   <input
+                    id="repa-change-summary"
+                    aria-invalid={Boolean(issues['version.summary'])}
+                    aria-describedby={issues['version.summary'] ? 'repa-summary-error' : undefined}
+                    onBlur={() => touch('version.summary')}
                     minLength={3}
                     maxLength={1000}
                     value={summary}
@@ -483,11 +614,21 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
                       setDirty(true)
                     }}
                   />
-                </label>
+                  <InlineFieldError id="repa-summary-error" message={issues['version.summary']} />
+                </div>
                 {future && (
-                  <label className="component-spacing">
-                    Future effective date and time
+                  <div
+                    className={`form-field component-spacing${issues['version.effective'] ? ' repa-field-invalid' : ''}`}
+                    data-field-path="version.effective"
+                  >
+                    <label htmlFor="repa-effective-date">Future effective date and time</label>
                     <input
+                      id="repa-effective-date"
+                      aria-invalid={Boolean(issues['version.effective'])}
+                      aria-describedby={
+                        issues['version.effective'] ? 'repa-effective-error' : undefined
+                      }
+                      onBlur={() => touch('version.effective')}
                       type="datetime-local"
                       value={effective}
                       onChange={(e) => {
@@ -495,7 +636,11 @@ function Wizard({ initial, organizationId }: { initial?: RepaBundle; organizatio
                         setDirty(true)
                       }}
                     />
-                  </label>
+                    <InlineFieldError
+                      id="repa-effective-error"
+                      message={issues['version.effective']}
+                    />
+                  </div>
                 )}
                 <p>
                   Every saved version records who changed it, old and new values, approval status,

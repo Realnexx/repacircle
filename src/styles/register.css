@@ -1,0 +1,185 @@
+/* Keep registration in view without clipping validation, zoomed text or a mobile keyboard. */
+.auth-shell--register {
+  display: flex;
+  flex-direction: column;
+}
+.auth-shell--register > header {
+  padding: 12px 28px;
+  flex-shrink: 0;
+  align-items: center;
+}
+.auth-shell--register main {
+  flex: 1;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 18px 32px;
+  gap: 48px;
+}
+.auth-shell--register .auth-form-column {
+  width: 100%;
+  max-width: 460px;
+  justify-self: end;
+}
+.auth-shell--register .auth-card {
+  padding: 20px 26px;
+}
+.auth-shell--register .auth-card > .eyebrow {
+  display: block;
+  line-height: 1.2;
+}
+.auth-shell--register .auth-tabs {
+  margin-bottom: 14px;
+  padding: 4px;
+}
+.auth-shell--register .auth-card h1 {
+  margin: 8px 0 6px;
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+.auth-shell--register .auth-intro {
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.auth-shell--register form {
+  gap: 10px;
+}
+.auth-shell--register .form-field {
+  gap: 5px;
+}
+.auth-shell--register .form-field > label {
+  line-height: 1.3;
+}
+.auth-shell--register .auth-card input {
+  line-height: 1.25;
+}
+.auth-shell--register .auth-card .button {
+  padding-block: 8px;
+}
+.auth-shell--register .field-hint {
+  line-height: 1.45;
+}
+.auth-shell--register form > .error,
+.auth-shell--register form > [role='status'] {
+  margin: 0;
+  line-height: 1.5;
+}
+.auth-shell--register .google-auth-button {
+  margin-top: 12px;
+}
+.auth-shell--register .google-auth-button + .field-hint {
+  margin-top: 8px;
+}
+.auth-shell--register .back-link {
+  margin-top: 10px;
+  line-height: 1.4;
+}
+.auth-shell--register .auth-story > h2 {
+  margin: 18px 0 12px;
+}
+.auth-shell--register .auth-community-art {
+  height: 250px;
+  margin: 12px 0;
+}
+.auth-shell--register .community-ring--outer {
+  width: 240px;
+  height: 240px;
+}
+.auth-shell--register .community-ring--inner {
+  width: 190px;
+  height: 190px;
+}
+.auth-shell--register .auth-emblem {
+  width: 136px;
+  height: 136px;
+}
+.auth-shell--register .auth-story-note {
+  padding-top: 18px;
+}
+@media (max-height: 760px) {
+  .auth-shell--register main {
+    padding-block: 10px;
+  }
+  .auth-shell--register .auth-card {
+    padding-block: 16px;
+  }
+  .auth-shell--register .auth-card h1 {
+    font-size: 1.6rem;
+    margin-top: 6px;
+  }
+  .auth-shell--register .auth-intro {
+    margin-bottom: 10px;
+  }
+  .auth-shell--register .auth-card > .eyebrow {
+    display: none;
+  }
+  .auth-shell--register .auth-community-art {
+    height: 210px;
+  }
+  .auth-shell--register .community-ring--outer {
+    width: 200px;
+    height: 200px;
+  }
+  .auth-shell--register .community-ring--inner {
+    width: 160px;
+    height: 160px;
+  }
+}
+@media (max-width: 62rem) and (max-height: 700px) {
+  .auth-shell--register .auth-intro,
+  .auth-shell--register .google-auth-button + .field-hint {
+    display: none;
+  }
+}
+@media (max-width: 62rem) {
+  .auth-shell--register > header {
+    padding: 10px 16px;
+  }
+  .auth-shell--register main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 520px;
+    padding: 14px;
+  }
+  .auth-shell--register .auth-story {
+    display: none;
+  }
+  .auth-shell--register .auth-form-column {
+    max-width: 440px;
+  }
+  .auth-shell--register .auth-card {
+    padding: 18px 20px;
+  }
+  .auth-shell--register .auth-card h1 {
+    font-size: clamp(1.3rem, 5.8vw, 1.7rem);
+  }
+  .auth-shell--register .auth-card input {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+}
+@media (max-width: 62rem) and (max-height: 760px) {
+  .auth-shell--register main {
+    padding: 10px 12px;
+  }
+  .auth-shell--register .auth-card {
+    padding: 14px 16px;
+  }
+  .auth-shell--register .auth-tabs {
+    margin-bottom: 10px;
+  }
+  .auth-shell--register .auth-card h1 {
+    margin-top: 4px;
+  }
+  .auth-shell--register .auth-intro {
+    margin-bottom: 12px;
+  }
+  .auth-shell--register form {
+    gap: 10px;
+  }
+  .auth-shell--register .google-auth-button,
+  .auth-shell--register .back-link {
+    margin-top: 10px;
+  }
+}
