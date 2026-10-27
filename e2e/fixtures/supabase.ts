@@ -196,6 +196,7 @@ export async function mockSupabase(
       state.enrolled = false
       return respond({ id: factorId })
     }
+    if (path === '/rest/v1/repa_groups') return respond([])
     if (path === '/rest/v1/profiles')
       return respond({
         id: accountId,

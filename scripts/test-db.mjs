@@ -2,6 +2,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { readFile } from 'node:fs/promises'
 import { URL } from 'node:url'
 import console from 'node:console'
+import process from 'node:process'
 const db = new PGlite()
 try {
   await db.exec(`create role anon; create role authenticated; create schema auth;
@@ -87,6 +88,69 @@ try {
   console.log(
     'PASS: required profile setup, validation, bypass denial, own-row isolation and completion persistence',
   )
+  await db.exec(
+    await readFile(
+      new URL(
+        '../supabase/migrations/20261027002546_phase3_repa_configuration.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  )
+  console.log('PASS: Phase 3 configuration migration')
+  const { defaultConfig } = await import('../src/modules/repa/config.ts')
+  const repa = defaultConfig('50000000-0000-4000-8000-000000000010')
+  Object.assign(repa.basic, { name: 'Test circle', start_date: '2030-01-31' })
+  repa.schedule.start_date = '2030-01-31'
+  repa.contribution.amount_minor = 10000
+  repa.reward.unit_cost_minor = 20000
+  repa.membership.terms =
+    'Every member accepts the disclosed contribution, reward and schedule rules.'
+  for (const type of ['rotating', 'random_draw', 'pooled_savings']) {
+    const c = JSON.parse(JSON.stringify(repa))
+    if (type === 'random_draw') {
+      c.mechanism = type
+      c.mechanism_options = { draw_policy: 'without_replacement', algorithm: 'server_csprng' }
+      c.distribution.rule = 'secure_random'
+    }
+    if (type === 'pooled_savings') {
+      c.mechanism = type
+      c.mechanism_options = { target_minor: 40000, distribute_at_end: true }
+      c.distribution.rule = 'equal'
+    }
+    await db.query('select set_config($1,$2,false)', ['test.' + type, JSON.stringify(c)])
+  }
+  await db.exec(await readFile(new URL('../supabase/tests/phase3.sql', import.meta.url), 'utf8'))
+  console.log(
+    'PASS: Phase 3 mechanisms, funding, tenant isolation, consent, activation, immutable versions and state machine',
+  )
+  await db.exec(
+    await readFile(new URL('../supabase/tests/phase4-before.sql', import.meta.url), 'utf8'),
+  )
+  await db.exec(
+    await readFile(
+      new URL(
+        '../supabase/migrations/20261027013035_phase4_membership_management.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  )
+  console.log('PASS: Phase 4 membership migration')
+  await db.exec(await readFile(new URL('../supabase/tests/phase4.sql', import.meta.url), 'utf8'))
+  console.log(
+    'PASS: Phase 4 enrollment, invitations, agreements, permissions, suspension, reward history and controlled replacement',
+  )
+} catch (error) {
+  console.error(
+    error.message,
+    error.where ?? '',
+    'position',
+    error.position,
+    error.internalPosition,
+    error.internalQuery ?? '',
+  )
+  process.exitCode = 1
 } finally {
   await db.close()
 }

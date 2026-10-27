@@ -1,6 +1,6 @@
 # RepaCircle
 
-React + TypeScript + Vite application. Phase 2 adds Supabase authentication, profiles, tenant organizations, MFA and scoped authorization to the Phase 1 UI system. Financial transactions are not implemented.
+React + TypeScript + Vite application. Phase 4 adds secure REPA enrollment, exact-version agreements, scoped staff access, member profiles/status/history and controlled replacement to the Phase 3 configuration engine. Financial transaction execution is not implemented. See [Phase 4](PHASE-4.md) for membership workflows and local-only rollout, and [Phase 3](PHASE-3.md) for configuration and funding assumptions.
 
 ## Start locally
 
@@ -24,7 +24,7 @@ If you already applied `202610260002_auth_organizations_rbac.sql` and `202610260
 
 The upgrade replaces function definitions, restores explicit execution grants, adds administrator audit handling and installs restrictive private-storage policies. It preserves existing account, organization, membership, invitation and uploaded-object records. It runs in a transaction and is safe to repeat. It does not modify hosted Auth URL/provider configuration or deploy Edge Functions.
 
-For a **new database**, apply all four migration files in filename order. If using the linked Supabase CLI, use `supabase db push` only after checking its migration history against manually applied files; a SQL Editor execution does not automatically mark a CLI migration applied. Do not reset a production database to synchronize history.
+After Phase 2, apply `20261026073855_required_personal_profile.sql`, then `20261027002546_phase3_repa_configuration.sql`, followed by `20261027013035_phase4_membership_management.sql` once in that order. These have not been applied online by this work. For a **new database**, apply all seven migration files in filename order. If using the linked Supabase CLI, use `supabase db push` only after checking its migration history against manually applied files; a SQL Editor execution does not automatically mark a CLI migration applied. Do not reset a production database to synchronize history.
 
 ## Hosted authentication configuration
 
@@ -72,7 +72,9 @@ Central lazy routes and layouts are in `src/app`; session, query and access prov
 
 Public account flows include registration, login, verification, recovery, reset and OAuth callback. `/profile`, `/security`, `/organizations`, `/invite` and `/unauthorized` support account/tenant management. Workspace navigation is filtered by scoped permission. Cache data clears when identity changes and selected organizations are validated against current membership.
 
-Group scopes are authorization anchors only. REPA group rules, financial processing, support/dispute case handling and operational reporting remain later-phase work. Platform analytics currently report audited account/tenant/invitation counts only.
+Group scopes remain authorization anchors; Phase 3 REPA groups share their identity and add typed/versioned rules, member slots and consent, funding checks and activation. Organizers use `/organizer/groups`; assigned members/treasurers can inspect groups from their workspace. Financial processing, support/dispute case handling and operational reporting remain later-phase work. Platform analytics currently report audited account/tenant/invitation counts only.
+
+Phase 4 adds permanent group memberships, secure email/share invitations, requests, immutable complete agreements, per-group staff capabilities, status/eligibility/history and controlled two-party replacement. Accepted contribution schedules become immutable obligation snapshots. Recording verified historical credits/rewards does not execute a payment. Members see their own financial records; scoped staff access is enforced separately in SQL. See [Phase 4](PHASE-4.md) for restrictions, migration requirements and email delivery setup.
 
 ## Verification
 

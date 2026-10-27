@@ -1,0 +1,103 @@
+begin;
+create policy phase3_legacy_permissive on storage.objects for all to authenticated using(true) with check(true);
+insert into auth.users(id,email,email_confirmed_at) values
+ ('50000000-0000-4000-8000-000000000001','phase3owner@example.test',now()),
+ ('50000000-0000-4000-8000-000000000002','phase3member@example.test',now()),
+ ('50000000-0000-4000-8000-000000000003','phase3outsider@example.test',now());
+update public.profiles set first_name='Test',last_name='Member',full_name='Test Member',mobile_number='09123456789',region_code='130000000',region_name='NCR',city_code='137404000',city_name='Quezon City',barangay_code='137404001',barangay_name='Alicia',street_address='12 Test Street',address='12 Test Street, Alicia',profile_completed_at=now() where id::text like '50000000-%';
+insert into auth.mfa_factors(user_id,status,factor_type) values('50000000-0000-4000-8000-000000000001','verified','totp');
+insert into public.organizations(id,name,created_by,request_id) values('50000000-0000-4000-8000-000000000010','Phase 3 circle','50000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000011');
+insert into public.organization_members(organization_id,user_id,role) values('50000000-0000-4000-8000-000000000010','50000000-0000-4000-8000-000000000001','owner'),('50000000-0000-4000-8000-000000000010','50000000-0000-4000-8000-000000000002','member');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000001',true);
+select set_config('request.jwt.claims','{"aal":"aal2"}',true);
+do $$declare typ text;gid uuid;vid uuid;c jsonb;report jsonb;begin
+ foreach typ in array array['rotating','random_draw','pooled_savings'] loop
+ c:=current_setting('test.'||typ)::jsonb;
+ gid:=public.save_repa_draft('50000000-0000-4000-8000-000000000010',null,0,c,'Initial rules',now());
+ perform set_config('test.gid',gid::text,true);
+ vid:=(public.get_repa_group(gid)->'group'->>'latest_version_id')::uuid;
+ perform set_config('test.vid',vid::text,true);
+ report:=public.check_repa_activation(gid,vid);
+ if (report->>'valid')::boolean or (report->>'expected_collections_minor')::bigint<>40000 or (report->>'reward_costs_minor')::bigint<>40000 then raise exception 'Funding parity or missing-member gate failed';end if;
+ begin perform public.activate_repa_group(gid,vid,true);raise exception 'Activated without members';exception when invalid_parameter_value then null;end;
+ begin update public.repa_groups set status='active' where id=gid;raise exception 'Direct write bypass';exception when insufficient_privilege then null;end;
+ begin perform public.save_repa_draft('50000000-0000-4000-8000-000000000010',gid,0,c,'Stale overwrite',now());raise exception 'Stale save accepted';exception when serialization_failure then null;end;
+ if typ='rotating' then
+ perform public.transition_repa_group(gid,'draft','enrollment_open','Ready for enrollment');
+ begin perform public.activate_repa_group(gid,vid,true);raise exception 'Activated with enrollment open';exception when invalid_parameter_value then null;end;
+ perform public.transition_repa_group(gid,'enrollment_open','enrollment_closed','Enrollment complete');
+ end if;
+ perform public.set_repa_member(gid,'50000000-0000-4000-8000-000000000001',true);
+ perform public.set_repa_member(gid,'50000000-0000-4000-8000-000000000002',true);
+ perform public.consent_repa_rules(vid,'{}');
+ perform set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000002',true);perform set_config('request.jwt.claims','{"aal":"aal1"}',true);
+ begin perform public.activate_repa_group(gid,vid,true);raise exception 'Member activated group';exception when insufficient_privilege then null;end;
+ perform public.consent_repa_rules(vid,'{}');perform public.consent_repa_rules(vid,'{}');
+ perform set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000003',true);
+ if exists(select 1 from public.repa_groups where id=gid) then raise exception 'Cross-tenant read';end if;
+ begin perform public.get_repa_group(gid);raise exception 'Cross-tenant RPC read';exception when insufficient_privilege then null;end;
+ begin perform public.consent_repa_rules(vid,'{}');raise exception 'Nonmember consent';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000001',true);perform set_config('request.jwt.claims','{"aal":"aal2"}',true);
+ report:=public.check_repa_activation(gid,vid);if (report->>'valid')::boolean is distinct from true then raise exception 'Valid activation blocked: %',report;end if;
+ perform public.activate_repa_group(gid,vid,true);perform public.activate_repa_group(gid,vid,true);
+ if (public.get_repa_group(gid)->'group'->>'status')<>'active' then raise exception 'Activation not persisted';end if;
+ begin perform public.archive_organization('50000000-0000-4000-8000-000000000010');raise exception 'Archived organization with active REPA';exception when invalid_parameter_value then null;end;
+ begin perform public.set_repa_member(gid,'50000000-0000-4000-8000-000000000002',false);raise exception 'Accepted membership altered';exception when insufficient_privilege then null;end;
+ begin perform public.transition_repa_group(gid,'active','draft','Bypass attempt');raise exception 'Illegal transition';exception when invalid_parameter_value then null;end;
+ perform public.transition_repa_group(gid,'active','paused','Maintenance window');perform public.transition_repa_group(gid,'paused','active','Resume accepted rules');
+ begin perform public.save_repa_draft('50000000-0000-4000-8000-000000000010',gid,1,c,'Silent changes',now());raise exception 'Past active proposal accepted';exception when invalid_parameter_value then null;end;
+ perform public.save_repa_draft('50000000-0000-4000-8000-000000000010',gid,1,c,'Future review',now()+interval '1 day');
+ if (public.get_repa_group(gid)->'group'->>'accepted_version_id')::uuid<>vid then raise exception 'Proposal rewrote accepted obligations';end if;
+ perform set_config('test.future_vid',public.get_repa_group(gid)->'group'->>'latest_version_id',true);
+ begin perform public.approve_repa_proposal(gid,current_setting('test.future_vid')::uuid);raise exception 'Approved without fresh consent';exception when invalid_parameter_value then null;end;
+ perform public.consent_repa_rules(current_setting('test.future_vid')::uuid,'{}');
+ perform set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000002',true);perform set_config('request.jwt.claims','{"aal":"aal1"}',true);
+ perform public.consent_repa_rules(current_setting('test.future_vid')::uuid,'{}');
+ perform set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000001',true);perform set_config('request.jwt.claims','{"aal":"aal2"}',true);
+ perform public.approve_repa_proposal(gid,current_setting('test.future_vid')::uuid);
+ if (public.get_repa_group(gid)->'group'->>'accepted_version_id')::uuid<>vid then raise exception 'Future approval rewrote accepted obligations';end if;
+ begin perform public.transition_repa_group(gid,'active','completed','Premature completion');raise exception 'Completed before the last round';exception when invalid_parameter_value then null;end;
+ perform public.transition_repa_group(gid,'active','cancelled','Cancelled with history retained');perform public.transition_repa_group(gid,'cancelled','archived','Archive cancelled group');
+ if exists(select 1 from public.organization_closure_blocks where source_kind='repa_group' and source_id=gid and resolved_at is null) then raise exception 'Terminal group left unresolved closure blocker';end if;
+ begin perform public.transition_repa_group(gid,'archived','active','Invalid resume');raise exception 'Archived group resumed';exception when invalid_parameter_value then null;end;
+ end loop;
+end $$;
+do $$declare c jsonb:=current_setting('test.rotating')::jsonb;gid uuid;vid uuid;report jsonb;begin
+ begin perform public.save_repa_draft('50000000-0000-4000-8000-000000000010',null,null,c,'Invalid revision',now());raise exception 'Missing revision allowed';exception when invalid_parameter_value then null;end;
+ begin perform public.save_repa_draft('50000000-0000-4000-8000-000000000010',null,0,c||'{"fields":[{"key":"amount_minor","label":"Override","type":"number","required":false,"category":"reward"}]}','Protected override',now());raise exception 'Protected field accepted';exception when invalid_parameter_value then null;end;
+ c:=jsonb_set(c,'{reward,unit_cost_minor}','30000');gid:=public.save_repa_draft('50000000-0000-4000-8000-000000000010',null,0,c,'Underfunded draft',now());vid:=(public.get_repa_group(gid)->'group'->>'latest_version_id')::uuid;report:=public.check_repa_activation(gid,vid);
+ if (report->>'shortfall_minor')::bigint<>20000 or (report->>'liquidity_shortfall_minor')::bigint<>20000 then raise exception 'Funding shortfall bypass';end if;
+ c:=jsonb_set(current_setting('test.rotating')::jsonb,'{contribution,member_count}','3');c:=jsonb_set(c,'{contribution,round_count}','3');c:=jsonb_set(c,'{membership,limit}','3');c:=jsonb_set(c,'{distribution,rotation_order}','[1,2,3]');c:=jsonb_set(c,'{reward,unit_cost_minor}','29000');c:=jsonb_set(c,'{funding,disclosed_fees_minor}','2000');
+ gid:=public.save_repa_draft('50000000-0000-4000-8000-000000000010',null,0,c,'Liquidity check',now());vid:=(public.get_repa_group(gid)->'group'->>'latest_version_id')::uuid;report:=public.check_repa_activation(gid,vid);
+ if (report->>'shortfall_minor')::bigint<>0 or (report->>'liquidity_shortfall_minor')::bigint<>1000 then raise exception 'Early liquidity gap missed';end if;
+end $$;
+do $$declare c jsonb:=current_setting('test.rotating')::jsonb;gid uuid;vid uuid;report jsonb;path text;begin
+ gid:=public.save_repa_draft('50000000-0000-4000-8000-000000000010',null,0,c,'Upload and custom field validation',now());
+ perform public.set_repa_member(gid,'50000000-0000-4000-8000-000000000001',true);perform public.set_repa_member(gid,'50000000-0000-4000-8000-000000000002',true);
+ path:=gid::text||'/50000000-0000-4000-8000-000000000001/52000000-0000-4000-8000-000000000001.png';
+ c:=jsonb_set(c,'{fields}','[{"key":"custom_photo","label":"Reward photo","type":"image","required":true,"category":"reward"},{"key":"custom_accept","label":"Accept delivery","type":"checkbox","required":true,"category":"membership"},{"key":"custom_note","label":"Delivery note","type":"text","required":true,"category":"membership","min":3,"max":30,"condition":{"key":"custom_accept","equals":true}},{"key":"custom_rows","label":"Contacts","type":"repeating","required":false,"category":"membership","max":3,"children":[{"key":"custom_child","label":"Name","type":"text","required":true,"category":"membership"}]}]');
+ c:=jsonb_set(c,'{reward,custom_values}',jsonb_build_object('custom_photo',path));
+ perform public.save_repa_draft('50000000-0000-4000-8000-000000000010',gid,1,c,'Custom fields and image',now());vid:=(public.get_repa_group(gid)->'group'->>'latest_version_id')::uuid;
+ report:=public.check_repa_activation(gid,vid);if (report->'errors')::text not like '%existing upload%' then raise exception 'Missing upload accepted';end if;
+ insert into storage.objects(bucket_id,name) values('repa-uploads',path);
+ begin insert into storage.objects(bucket_id,name) values('repa-uploads',gid::text||'/50000000-0000-4000-8000-000000000002/52000000-0000-4000-8000-000000000002.png');raise exception 'Other-user upload prefix accepted';exception when insufficient_privilege then null;end;
+ report:=public.check_repa_activation(gid,vid);if (report->'errors')::text like '%existing upload%' then raise exception 'Valid upload not recognized';end if;
+ begin perform public.consent_repa_rules(vid,'{"custom_accept":false}');raise exception 'Required checkbox bypass';exception when invalid_parameter_value then null;end;
+ begin perform public.consent_repa_rules(vid,'{"custom_accept":true}');raise exception 'Conditional field bypass';exception when invalid_parameter_value then null;end;
+ begin perform public.consent_repa_rules(vid,'{"custom_accept":true,"custom_note":"Ready","custom_rows":[{}]}');raise exception 'Repeating child bypass';exception when invalid_parameter_value then null;end;
+ perform public.consent_repa_rules(vid,'{"custom_accept":true,"custom_note":"Ready","custom_rows":[{"custom_child":"Recipient"}]}');
+ insert into storage.objects(bucket_id,name) values('repa-uploads',gid::text||'/50000000-0000-4000-8000-000000000001/52000000-0000-4000-8000-000000000003.pdf');
+ perform set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000002',true);perform set_config('request.jwt.claims','{"aal":"aal1"}',true);
+ if not exists(select 1 from storage.objects where bucket_id='repa-uploads' and name=path) then raise exception 'Published reward image inaccessible';end if;
+ if exists(select 1 from storage.objects where bucket_id='repa-uploads' and name like '%52000000-0000-4000-8000-000000000003.pdf') then raise exception 'Another member private attachment exposed';end if;
+ perform set_config('request.jwt.claim.sub','50000000-0000-4000-8000-000000000001',true);perform set_config('request.jwt.claims','{"aal":"aal2"}',true);
+end $$;
+reset role;
+do $$begin
+ begin update public.group_rules set contribution_amount_minor=1 where version_id=current_setting('test.vid')::uuid;raise exception 'Accepted rules mutable';exception when insufficient_privilege then null;end;
+ begin delete from public.group_config_versions where id=current_setting('test.vid')::uuid;raise exception 'History deletable';exception when insufficient_privilege then null;end;
+end $$;
+set local role anon;
+do $$begin begin perform public.get_repa_group(current_setting('test.gid')::uuid);raise exception 'Anon RPC access';exception when insufficient_privilege then null;end;end $$;
+rollback;

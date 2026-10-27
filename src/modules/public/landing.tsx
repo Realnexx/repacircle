@@ -369,6 +369,8 @@ export default function Landing() {
                 'Personal profiles with Philippine addresses',
                 'Organizations, membership, and invitations',
                 'Role-based access and account security',
+                'Rotating, random draw and pooled savings configuration',
+                'Funding checks, schedules and accepted rules',
               ].map((text) => (
                 <li key={text}>
                   <Check size={17} />
@@ -392,7 +394,7 @@ export default function Landing() {
             <p>These features are planned and are not yet available for financial activity.</p>
             <ul>
               {[
-                'Savings group rules and schedules',
+                'Secure draw execution and collection reminders',
                 'Contribution tracking and payment verification',
                 'Payout planning and distribution workflows',
                 'Community reports and financial statements',

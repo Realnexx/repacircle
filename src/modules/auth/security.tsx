@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation } from 'react-router-dom'
-import { getInvitationIntent } from './invitation-intent'
+import { pendingInvitationPath } from './invitation-intent'
 import { safeReturnPath } from './service'
 import { requireClient } from '@/lib/api/client'
 import { useSession } from './session'
@@ -185,11 +185,9 @@ export default function Security() {
             {access.aal === 'aal2' && (
               <Link
                 className="button component-spacing"
-                to={
-                  getInvitationIntent()
-                    ? '/invite'
-                    : safeReturnPath((location.state as { from?: string } | null)?.from)
-                }
+                to={pendingInvitationPath(
+                  safeReturnPath((location.state as { from?: string } | null)?.from),
+                )}
               >
                 Continue
               </Link>

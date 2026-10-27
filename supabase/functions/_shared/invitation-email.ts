@@ -6,7 +6,8 @@ export type DeliveryDependencies = {
     authorization: string,
     id: string,
     token: string,
-  ) => Promise<{ email: string; organization_name: string }>
+  ) => Promise<{ email: string; organization_name: string; group_name?: string }>
+  kind?: 'organization' | 'group'
   send: typeof fetch
 }
 export function invitationEmailHandler(deps: DeliveryDependencies) {
@@ -56,7 +57,7 @@ export function invitationEmailHandler(deps: DeliveryDependencies) {
     } catch {
       return reply({ error: 'Invalid invitation request.' }, 400)
     }
-    let invitation: { email: string; organization_name: string }
+    let invitation: { email: string; organization_name: string; group_name?: string }
     try {
       invitation = await deps.claim(authorization, id, token)
     } catch {
@@ -65,20 +66,25 @@ export function invitationEmailHandler(deps: DeliveryDependencies) {
         403,
       )
     }
-    const link = `${origin}/invite#${new URLSearchParams({ id, token })}`
+    const group = deps.kind === 'group'
+    const link = `${origin}/${group ? 'groups/join' : 'invite'}#${new URLSearchParams({ id, token })}`
     try {
       const response = await deps.send('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${deps.apiKey}`,
           'Content-Type': 'application/json',
-          'Idempotency-Key': `organization-invitation-${id}`,
+          'Idempotency-Key': `${group ? 'group' : 'organization'}-invitation-${id}`,
         },
         body: JSON.stringify({
           from: deps.from,
           to: [invitation.email],
-          subject: 'Your RepaCircle organization invitation',
-          text: `You have been invited to ${invitation.organization_name} on RepaCircle.\n\nSign in using this email address and accept your invitation:\n${link}\n\nThis invitation expires after seven days. Privileged roles require an authenticator. If you did not expect this invitation, you can ignore it.`,
+          subject: group
+            ? 'Your RepaCircle group invitation'
+            : 'Your RepaCircle organization invitation',
+          text: group
+            ? `You have been invited to ${invitation.group_name} in ${invitation.organization_name} on RepaCircle.\n\nSign in using this email address to request enrollment and review your group agreement:\n${link}\n\nThe invitation has a limited lifetime. Approval and full agreement acceptance are required before participation. An organization owner invitation may also create basic organization membership. If you did not expect this invitation, you can ignore it.`
+            : `You have been invited to ${invitation.organization_name} on RepaCircle.\n\nSign in using this email address and accept your invitation:\n${link}\n\nThis invitation expires after seven days. Privileged roles require an authenticator. If you did not expect this invitation, you can ignore it.`,
         }),
         signal: AbortSignal.timeout(15_000),
       })

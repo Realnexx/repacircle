@@ -1,0 +1,202 @@
+.repa-wizard-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.repa-step-nav {
+  position: sticky;
+  top: 20px;
+  padding: 16px;
+}
+.repa-step-nav nav {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.repa-step-nav button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  min-height: 44px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+.repa-step-nav button[aria-current] {
+  background: var(--secondary);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+.repa-step-nav button span {
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+  font-size: 0.625rem;
+}
+.repa-wizard-main {
+  min-width: 0;
+}
+.repa-fields,
+.repa-list-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+.repa-list-filters {
+  grid-template-columns: 2fr 1fr 1fr;
+  margin: 0;
+}
+.repa-field-wide {
+  grid-column: 1/-1;
+}
+.repa-fields .form-field:has(textarea),
+.repa-fields .form-field:has(input[type='file']) {
+  grid-column: 1/-1;
+}
+.repa-fields .form-field > label:empty {
+  display: none;
+}
+.repa-repeat-row {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.repa-repeat-row:last-of-type {
+  margin-bottom: 16px;
+}
+.repa-designer {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.repa-designer > fieldset {
+  margin: 18px 0;
+}
+.repa-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 18px;
+}
+.repa-funding-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.repa-funding-grid > div {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--input-surface);
+}
+.repa-funding-grid strong {
+  display: block;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  margin-top: 10px;
+}
+.repa-validation {
+  color: var(--danger);
+  font-size: 0.8125rem;
+  line-height: 1.8;
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
+.repa-terms {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.repa-confirm {
+  padding: 20px;
+  border: 1px solid var(--primary);
+  background: var(--secondary);
+  border-radius: 12px;
+  margin-top: 20px;
+}
+.repa-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.repa-lock-note {
+  padding: 14px 18px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.repa-history {
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+  min-width: 0;
+}
+.repa-history summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.repa-value {
+  display: block;
+  max-width: 340px;
+  max-height: 160px;
+  overflow: auto;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.repa-cover {
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 68.75rem) {
+  .repa-wizard-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .repa-step-nav {
+    position: static;
+  }
+  .repa-step-nav nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .repa-step-nav button {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+@media (max-width: 36rem) {
+  .repa-fields,
+  .repa-list-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .repa-step-nav nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .repa-step-nav {
+    padding: 12px;
+  }
+  .repa-tabs .button {
+    flex: 1 1 130px;
+    font-size: 0.75rem;
+  }
+  .repa-fields fieldset {
+    padding: 12px;
+  }
+  .repa-funding-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .repa-funding-grid > div {
+    padding: 12px;
+  }
+  .repa-funding-grid strong {
+    font-size: 0.925rem;
+  }
+}

@@ -4,11 +4,13 @@ export function Modal({
   onClose,
   busy,
   labelledBy = 'dialog-title',
+  className = '',
 }: {
   children: ReactNode
   onClose: () => void
   busy: boolean
   labelledBy?: string
+  className?: string
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
@@ -24,7 +26,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      className="modal"
+      className={`modal ${className}`}
       aria-labelledby={labelledBy}
       onCancel={(event) => {
         event.preventDefault()

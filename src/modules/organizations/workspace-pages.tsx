@@ -1,3 +1,4 @@
+import RepaList from '../repa/pages'
 import { useQuery } from '@tanstack/react-query'
 import { useAccess } from '@/app/providers/access'
 import { PageHeader } from '@/components/layout/page'
@@ -52,7 +53,7 @@ export function OrganizationScopesPage() {
     <>
       <PageHeader
         title="Groups"
-        description="Authorization scopes for your organization. Active REPA groups will be configured in a later phase."
+        description="Authorization scopes for your organization. Configure REPA rules and activation in Groups."
       />
       <section className="panel">
         {query.isLoading ? (
@@ -77,9 +78,10 @@ export function AssignedScopesPage({ treasurer }: { treasurer: boolean }) {
     <>
       <PageHeader
         title={treasurer ? 'Assigned Groups' : 'My Groups'}
-        description="Only groups assigned to your current organization membership are shown."
+        description="View groups available to your organization membership and your assigned scopes."
       />
-      <section className="panel">
+      <RepaList embedded />
+      <section className="panel component-spacing">
         <DataTable
           caption="Your authorized group scopes"
           rows={

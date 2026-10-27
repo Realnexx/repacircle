@@ -46,8 +46,8 @@ export function GroupAccessManager({
     <section className="panel component-spacing">
       <h2>Group-scoped access</h2>
       <p>
-        These are authorization scopes, not active REPA groups. Group configuration comes later.
-        Treasurer access is granted only to explicitly assigned scopes.
+        Manage authorization scopes here. Create configuration-driven REPA groups from Groups in
+        your organizer workspace. Treasurer access is granted only to explicitly assigned scopes.
       </p>
       <form
         className="inline-form"

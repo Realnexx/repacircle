@@ -1,7 +1,7 @@
 import { Link, Navigate } from 'react-router-dom'
 import { useSession } from './session'
 import { LoadingSkeleton, ErrorState } from '@/components/feedback/states'
-import { getInvitationIntent } from './invitation-intent'
+import { pendingInvitationPath } from './invitation-intent'
 export default function AuthCallback() {
   const { session, loading, error } = useSession()
   const params = new URLSearchParams(location.hash.slice(1))
@@ -16,13 +16,7 @@ export default function AuthCallback() {
     )
   return session ? (
     <Navigate
-      to={
-        session.user.email_confirmed_at
-          ? getInvitationIntent()
-            ? '/invite'
-            : '/organizations'
-          : '/verify-email'
-      }
+      to={session.user.email_confirmed_at ? pendingInvitationPath() : '/verify-email'}
       replace
     />
   ) : (

@@ -1,0 +1,77 @@
+.membership-agreement-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.membership-agreement-sections .panel {
+  padding: 22px;
+}
+.membership-agreement-sections p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.membership-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 20px 0;
+}
+.membership-filter label {
+  flex: 1 1 180px;
+}
+.membership-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.membership-drawer.modal {
+  position: fixed;
+  inset: 16px 16px 16px auto;
+  width: min(880px, calc(100vw - 32px));
+  max-width: 880px;
+  margin: 0;
+  height: calc(100dvh - 32px);
+  max-height: calc(100dvh - 32px);
+}
+.membership-history {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.membership-history summary {
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.membership-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.membership-alert {
+  padding: 16px;
+  background: var(--secondary);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin: 16px 0;
+}
+.membership-dialog-section {
+  margin: 24px 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 40rem) {
+  .membership-agreement-sections,
+  .membership-profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .membership-agreement-sections .panel {
+    padding: 18px;
+  }
+  .membership-actions .button {
+    flex: 1 1 130px;
+  }
+}

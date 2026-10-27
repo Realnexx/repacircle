@@ -17,7 +17,7 @@ import {
   googleSignIn,
   safeReturnPath,
 } from './service'
-import { getInvitationIntent } from './invitation-intent'
+import { pendingInvitationPath } from './invitation-intent'
 export default function AuthPage() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -95,9 +95,7 @@ export default function AuthPage() {
           return
         }
         navigate(
-          getInvitationIntent()
-            ? '/invite'
-            : safeReturnPath((location.state as { from?: string } | null)?.from),
+          pendingInvitationPath(safeReturnPath((location.state as { from?: string } | null)?.from)),
           { replace: true },
         )
       }

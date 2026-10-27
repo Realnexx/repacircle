@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { PersonalFields } from './personal-fields'
 import { emptyPersonal } from './personal'
-import { getInvitationIntent } from '@/modules/auth/invitation-intent'
+import { pendingInvitationPath } from '@/modules/auth/invitation-intent'
 import { useSession } from '@/modules/auth/session'
 import { changeEmail } from '@/modules/auth/service'
 import { emailSchema } from '@/modules/auth/validation'
@@ -83,7 +83,7 @@ function ProfileEditor({ profile, setup }: { profile: Profile; setup: boolean })
       toast.success(
         setup ? 'Personal information saved. Your account is ready.' : 'Profile updated.',
       )
-      if (setup) navigate(getInvitationIntent() ? '/invite' : '/organizations', { replace: true })
+      if (setup) navigate(pendingInvitationPath(), { replace: true })
     },
     onError: (error) => toast.error(error.message),
   })

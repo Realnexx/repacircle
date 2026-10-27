@@ -34,14 +34,17 @@ export function WorkspacePage({
             <div className="dashboard-overview-main">
               <div className="dashboard-welcome panel">
                 <div>
-                  <StatusBadge status="info">Foundation phase</StatusBadge>
+                  <StatusBadge status="info">REPA configuration</StatusBadge>
                   <h2>Your community, thoughtfully connected.</h2>
                   <p>
-                    Your workspace is ready to take shape. Group operations and financial workflows
-                    will be connected in later phases.
+                    Configure your community’s REPA groups, review funding assumptions and agree on
+                    clear rules before activation.
                   </p>
-                  <Link className="button" to={role === 'organizer' ? '/organizations' : '/help'}>
-                    {role === 'organizer' ? 'Manage organizations' : 'View setup guide'}
+                  <Link
+                    className="button"
+                    to={role === 'organizer' ? '/organizer/groups' : '/help'}
+                  >
+                    {role === 'organizer' ? 'Manage REPA groups' : 'View setup guide'}
                     <ArrowUpRight size={16} />
                   </Link>
                 </div>

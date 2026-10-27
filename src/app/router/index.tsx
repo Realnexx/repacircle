@@ -43,6 +43,13 @@ const Verification = lazy(() => import('@/modules/auth/verification'))
 const Callback = lazy(() => import('@/modules/auth/callback'))
 const Invite = lazy(() => import('@/modules/organizations/invitations'))
 const Unauthorized = lazy(() => import('@/modules/auth/unauthorized'))
+const RepaEditor = lazy(() =>
+  import('@/modules/repa/pages').then((m) => ({ default: m.RepaEditor })),
+)
+const RepaDetail = lazy(() => import('@/modules/repa/detail'))
+const JoinGroup = lazy(() => import('@/modules/membership/join'))
+const GroupAgreement = lazy(() => import('@/modules/membership/agreement'))
+const MembershipRequests = lazy(() => import('@/modules/membership/management'))
 const OrganizerLayout = layouts.organizer
 const publicElements: Record<string, ReactNode> = {
   '/': <Landing />,
@@ -62,6 +69,8 @@ const routes: RouteObject[] = [
     children: [
       ...publicPages.map((page) => ({ path: page.path, element: publicElements[page.path] })),
       { path: '/invite', element: <Invite /> },
+      { path: '/groups/join', element: <JoinGroup /> },
+      { path: '/groups/:groupId/agreement', element: <GroupAgreement /> },
       { path: '/unauthorized', element: <Unauthorized /> },
       {
         path: '*',
@@ -102,6 +111,19 @@ const routes: RouteObject[] = [
       element: <Layout />,
       children: [
         { index: true, element: <Navigate to="dashboard" replace /> },
+        ...(workspace.role === 'organizer'
+          ? [
+              { path: 'groups/new', element: <RepaEditor /> },
+              { path: 'groups/:groupId/edit', element: <RepaEditor /> },
+              { path: 'groups/:groupId', element: <RepaDetail /> },
+              { path: 'groups/:groupId/requests', element: <MembershipRequests /> },
+            ]
+          : workspace.role === 'member' || workspace.role === 'treasurer'
+            ? [
+                { path: 'repa/:groupId', element: <RepaDetail /> },
+                { path: 'repa/:groupId/requests', element: <MembershipRequests /> },
+              ]
+            : []),
         ...workspace.pages.map((page) => ({
           path: page.slug,
           element:

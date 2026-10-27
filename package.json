@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.edge.json --noEmit",
     "lint": "eslint .",
     "test:e2e": "playwright test",
-    "test:db": "node scripts/test-db.mjs",
+    "test:db": "node --experimental-strip-types scripts/test-db.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

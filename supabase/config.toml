@@ -27,3 +27,7 @@ verify_enabled = true
 [functions.send-organization-invitation]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+[functions.send-group-invitation]
+verify_jwt = false
+import_map = "./functions/deno.json"

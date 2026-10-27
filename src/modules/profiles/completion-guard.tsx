@@ -5,12 +5,14 @@ import { useSession } from '@/modules/auth/session'
 import { environment } from '@/lib/validation/env'
 import { ErrorState, LoadingSkeleton } from '@/components/feedback/states'
 import { getMyProfile, isProfileComplete } from './service'
+import { getGroupJoinIntent } from '@/modules/membership/intent'
 
 export function ProfileCompletionGuard({ children }: { children: ReactNode }) {
   const { session, loading, authVersion } = useSession()
   const { pathname } = useLocation()
+  if (pathname === '/groups/join') getGroupJoinIntent()
   const protectedPath =
-    /^\/(platform-admin|organizer|treasurer|member)(\/|$)/.test(pathname) ||
+    /^\/(platform-admin|organizer|treasurer|member|groups)(\/|$)/.test(pathname) ||
     [
       '/organizations',
       '/profile',

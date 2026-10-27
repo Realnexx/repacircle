@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { logoutAccount } from './service'
 import { clearInvitationIntent } from './invitation-intent'
+import { clearGroupJoinIntent } from '@/modules/membership/intent'
 type State = {
   session: Session | null
   loading: boolean
@@ -55,6 +56,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_OUT') {
         setRecovery(false)
         clearInvitationIntent()
+        clearGroupJoinIntent()
       }
     })
     void supabase.auth
